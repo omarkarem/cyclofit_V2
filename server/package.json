@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "setup": "node install-ffmpeg.js",
-    "postinstall": "npm run setup"
+    "build": "echo 'Build completed'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.797.0",
@@ -31,5 +30,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
