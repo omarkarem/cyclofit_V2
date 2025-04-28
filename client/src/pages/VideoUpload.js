@@ -105,7 +105,8 @@ function VideoUpload() {
           'Authorization': `Bearer ${token}`
         },
         signal: controller.signal,
-        credentials: 'include'
+        credentials: 'include',
+        mode: 'no-cors'
       });
       
       clearTimeout(timeoutId);
