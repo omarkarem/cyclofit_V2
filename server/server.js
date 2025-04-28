@@ -79,9 +79,29 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Fix CORS for credentials
+// Setup allowed origins for CORS - only production domain
+const allowedOrigins = ['https://cyclofit.vercel.app'];
+// If CLIENT_URL is set and not already in the list, add it
+if (process.env.CLIENT_URL && !allowedOrigins.includes(process.env.CLIENT_URL)) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
+// Log the allowed origins for debugging
+console.log('CORS Allowed Origins:', allowedOrigins);
+
+// Fix CORS for credentials with specific origin
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'https://cyclofit.vercel.app',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, origin);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
