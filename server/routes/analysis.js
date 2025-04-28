@@ -417,4 +417,6 @@ router.get('/status/s3', ensureAuthenticated, async (req, res) => {
   }
 });
 
+console.log('API URL:', process.env.REACT_APP_API_URL);
+
 module.exports = router; 
