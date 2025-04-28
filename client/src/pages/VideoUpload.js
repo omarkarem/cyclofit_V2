@@ -105,8 +105,7 @@ function VideoUpload() {
           'Authorization': `Bearer ${token}`
         },
         signal: controller.signal,
-        credentials: 'include',
-        mode: 'no-cors'
+        credentials: 'include'
       });
       
       clearTimeout(timeoutId);
@@ -119,6 +118,10 @@ function VideoUpload() {
       
       // Process the data with better error handling
       try {
+        if (!data.success) {
+          throw new Error(data.error || 'Unknown error processing video');
+        }
+        
         // Get the analysis result from the response
         const analysisResult = data.analysisResult;
         
@@ -162,7 +165,7 @@ function VideoUpload() {
         // Make sure to set loading to false before navigation
         setLoading(false);
         
-        // Instead of sessionStorage, use React Router's state to pass the data
+        // Navigate to results page with the analysis data
         navigate('/analysis-feedback', { state: { analysisResult: analysisResult } });
         
       } catch (processError) {

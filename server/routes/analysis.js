@@ -5,6 +5,8 @@ const passport = require('passport');
 const analysisController = require('../controllers/analysisController');
 const jwt = require('jsonwebtoken');
 const uuid = require('uuid');
+const fetch = require('node-fetch');
+const FormData = require('form-data');
 
 // Helper middleware to ensure user is authenticated
 const ensureAuthenticated = (req, res, next) => {
@@ -51,84 +53,83 @@ const upload = multer({
   }
 });
 
-// Process video and save analysis to database
+// Add configuration for the AI API endpoint
+const AI_ANALYSIS_URL = process.env.FLASK_API_URL || 'https://poseestimation-8520e3930676.herokuapp.com/process-video';
+
+// Process video for analysis
 router.post('/process', ensureAuthenticated, upload.single('video'), async (req, res) => {
   try {
-    const { user_height_cm, quality, bike_type } = req.body;
-    const videoFile = req.file;
+    console.log('Video processing request received');
     
-    if (!videoFile) {
-      return res.status(400).json({ error: 'No video file was uploaded' });
+    // Get user info
+    const userHeight = req.body.user_height_cm;
+    const quality = req.body.quality || '100';
+    const bikeType = req.body.bike_type || 'road';
+    
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No video file provided' });
     }
     
-    if (!user_height_cm) {
-      return res.status(400).json({ error: 'User height is required' });
-    }
+    console.log(`Processing video analysis for user ${req.user._id}`);
     
-    console.log('Processing video request received:');
-    console.log('User ID:', req.user._id);
-    console.log('File size:', videoFile.size);
-    console.log('Content type:', videoFile.mimetype);
-    console.log('Height:', user_height_cm, 'cm');
-    console.log('Quality:', quality || '40');
-    console.log('Bike type:', bike_type || 'road');
+    // Create a form data object to send to the AI server
+    const aiFormData = new FormData();
+    aiFormData.append('video', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
+    });
+    aiFormData.append('user_height_cm', userHeight);
+    aiFormData.append('quality', quality);
+    aiFormData.append('bike_type', bikeType);
     
-    // Process the video with AI
-    let analysisResults;
-    try {
-      // Directly send the buffer to the processing function
-      analysisResults = await analysisController.processVideoWithAI(
-        videoFile.buffer,
-        parseFloat(user_height_cm),
-        parseInt(quality || '40')
-      );
-      
-      console.log('AI processing complete');
-    } catch (aiError) {
-      console.error('Error from AI processing:', aiError);
-      return res.status(500).json({
-        error: 'Error processing video with AI',
-        details: aiError.message
+    console.log(`Forwarding request to AI endpoint: ${AI_ANALYSIS_URL}`);
+    
+    // Forward the request to the AI analysis service
+    const aiResponse = await fetch(AI_ANALYSIS_URL, {
+      method: 'POST',
+      body: aiFormData,
+      headers: {
+        ...aiFormData.getHeaders(),
+      },
+    });
+    
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error(`AI service error: ${aiResponse.status}`, errorText);
+      return res.status(aiResponse.status).json({ 
+        success: false, 
+        error: `AI analysis service error: ${aiResponse.status}` 
       });
     }
     
-    // Save the analysis to database with S3 storage
+    // Get the analysis result from the AI service
+    const aiData = await aiResponse.json();
+    console.log('AI analysis completed successfully');
+    
+    // Create a new Analysis record
     const analysis = await analysisController.saveAnalysis(
       req.user._id,
-      videoFile.buffer,
-      videoFile.mimetype,
-      videoFile.originalname,
-      videoFile.size,
-      parseFloat(user_height_cm),
-      bike_type || 'road',
-      analysisResults
+      req.file.buffer,
+      req.file.mimetype,
+      req.file.originalname,
+      req.file.size,
+      parseFloat(userHeight),
+      bikeType,
+      aiData
     );
     
-    // Return analysis without the video data
-    res.json({
-      message: 'Analysis saved successfully',
+    // Return the analysis result and the database ID
+    return res.json({
+      success: true,
       analysisId: analysis._id,
-      analysisResult: {
-        max_angles: analysis.maxAngles,
-        min_angles: analysis.minAngles,
-        body_lengths_cm: analysis.bodyLengthsCm,
-        recommendations: analysis.recommendations,
-        bike_type: analysis.bikeType,
-        // Include duration information
-        duration: analysis.duration,
-        // Include storage type
-        storage_type: 's3',
-        // Only include flags for video and keyframe availability
-        processed_video_available: !!analysis.processedVideo?.s3Key,
-        keyframes_available: Array.isArray(analysis.keyframes) && analysis.keyframes.length > 0,
-        keyframe_count: Array.isArray(analysis.keyframes) ? analysis.keyframes.length : 0
-      }
+      analysisResult: aiData
     });
+    
   } catch (error) {
-    console.error('Unexpected error in /process endpoint:', error);
-    res.status(500).json({ 
-      error: 'Unexpected server error', 
-      details: error.message 
+    console.error('Error in video processing:', error);
+    return res.status(500).json({
+      success: false,
+      error: `Video processing failed: ${error.message}`
     });
   }
 });

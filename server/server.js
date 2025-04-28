@@ -75,24 +75,22 @@ require('./config/passport');
 
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Add simple CORS handling middleware
+// CORS - Put this FIRST before ANY other middleware
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://cyclofit.vercel.app");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Credentials", "true");
+  res.setHeader('Access-Control-Allow-Origin', 'https://cyclofit.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(204).end();
   }
-  
   next();
 });
+
+// Rest of middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (for legacy paths during migration period)
 app.use('/static', express.static(path.join(__dirname)));
