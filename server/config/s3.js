@@ -24,7 +24,6 @@ const uploadToS3 = async (fileBuffer, fileName, contentType) => {
         ContentType: contentType,
         ContentDisposition: 'inline',
         CacheControl: 'max-age=31536000',
-        ACL: 'public-read',
         Metadata: {
           'x-amz-meta-content-type': contentType
         }
