@@ -15,24 +15,45 @@ const s3Client = new S3Client({
 // Function to upload file to S3
 const uploadToS3 = async (fileBuffer, fileName, contentType) => {
   try {
-    const upload = new Upload({
-      client: s3Client,
-      params: {
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: fileName,
-        Body: fileBuffer,
-        ContentType: contentType,
-        ContentDisposition: 'inline',
-        CacheControl: 'max-age=31536000',
-        Metadata: {
-          'x-amz-meta-content-type': contentType
-        }
+    // Create base params without ACL
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: fileName,
+      Body: fileBuffer,
+      ContentType: contentType,
+      ContentDisposition: 'inline',
+      CacheControl: 'max-age=31536000',
+      Metadata: {
+        'x-amz-meta-content-type': contentType
       }
-    });
+    };
 
-    const result = await upload.done();
-    console.log(`File uploaded successfully to ${result.Location}`);
-    return result.Key;
+    // First try without ACL
+    try {
+      const upload = new Upload({
+        client: s3Client,
+        params
+      });
+      
+      const result = await upload.done();
+      console.log(`File uploaded successfully to ${result.Location}`);
+      return result.Key;
+    } catch (error) {
+      // If error wasn't related to ACL, just throw it
+      if (!error.message.includes('AccessControlList')) {
+        throw error;
+      }
+      
+      console.log('Trying upload again without ACL parameter');
+      const upload = new Upload({
+        client: s3Client,
+        params
+      });
+      
+      const result = await upload.done();
+      console.log(`File uploaded successfully to ${result.Location}`);
+      return result.Key;
+    }
   } catch (error) {
     console.error('Error uploading file to S3:', error);
     throw error;
