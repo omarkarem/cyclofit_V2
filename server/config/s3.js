@@ -21,7 +21,13 @@ const uploadToS3 = async (fileBuffer, fileName, contentType) => {
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: fileName,
         Body: fileBuffer,
-        ContentType: contentType
+        ContentType: contentType,
+        ContentDisposition: 'inline',
+        CacheControl: 'max-age=31536000',
+        ACL: 'public-read',
+        Metadata: {
+          'x-amz-meta-content-type': contentType
+        }
       }
     });
 
@@ -39,10 +45,19 @@ const getSignedUrl = async (key, expiresIn = 3600) => {
   try {
     const command = new GetObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key
+      Key: key,
+      ResponseContentDisposition: 'inline',
+      ResponseContentType: key.endsWith('.mp4') ? 'video/mp4' : 
+                         key.endsWith('.jpg') ? 'image/jpeg' : 
+                         key.endsWith('.png') ? 'image/png' : 
+                         'application/octet-stream'
     });
     
-    return await generateSignedUrl(s3Client, command, { expiresIn });
+    return await generateSignedUrl(s3Client, command, { 
+      expiresIn,
+      // Explicitly define the signing region to match your S3 bucket's region
+      region: process.env.AWS_REGION
+    });
   } catch (error) {
     console.error('Error generating signed URL:', error);
     throw error;
