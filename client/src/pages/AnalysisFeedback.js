@@ -149,6 +149,37 @@ function AnalysisFeedback() {
     }
   }, [location, navigate, id]);
 
+  useEffect(() => {
+    if (result && result.video) {
+      try {
+        // Convert base64 to blob with explicit MIME type
+        const byteCharacters = atob(result.video.split(',')[1]);
+        const byteArrays = [];
+        
+        for (let i = 0; i < byteCharacters.length; i += 512) {
+          const slice = byteCharacters.slice(i, i + 512);
+          const byteNumbers = new Array(slice.length);
+          
+          for (let j = 0; j < slice.length; j++) {
+            byteNumbers[j] = slice.charCodeAt(j);
+          }
+          
+          const byteArray = new Uint8Array(byteNumbers);
+          byteArrays.push(byteArray);
+        }
+        
+        // Explicitly set MIME type to video/mp4
+        const blob = new Blob(byteArrays, { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        
+        setProcessedVideoUrl(url);
+        console.log('Successfully created video blob URL');
+      } catch (error) {
+        console.error('Error creating video blob:', error);
+      }
+    }
+  }, [result]);
+
   // Function to fetch analysis by ID
   const fetchAnalysisById = async (id) => {
     setLoading(true);

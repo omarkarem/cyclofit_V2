@@ -34,12 +34,13 @@ const ensureAuthenticated = (req, res, next) => {
   }
 };
 
-// Configure multer for memory storage (not disk storage)
+// Configure multer for video uploads with increased size limit
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fileSize: 200 * 1024 * 1024, // 200MB limit
+    fieldSize: 200 * 1024 * 1024 // 200MB for text fields (in case of large base64 strings)
   },
   fileFilter: function (req, file, cb) {
     // Accept video file types
