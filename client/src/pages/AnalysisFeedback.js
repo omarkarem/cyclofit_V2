@@ -48,7 +48,50 @@ function AnalysisFeedback() {
   const [analysisId, setAnalysisId] = useState(null);
   const [processedVideoUrl, setProcessedVideoUrl] = useState(null);
   const [keyframesUrl, setKeyframesUrl] = useState(null);
-
+  // Add ref to store video blob
+  const videoBlobRef = useRef(null);
+  
+  // Function to safely create a blob URL from base64 data
+  const createVideoBlob = (base64Data) => {
+    try {
+      // Clean up previous blob URL if it exists
+      if (processedVideoUrl && !processedVideoUrl.startsWith('http')) {
+        URL.revokeObjectURL(processedVideoUrl);
+      }
+      
+      // Handle video data encoding
+      let base64Content = base64Data;
+      if (base64Data.includes(',')) {
+        base64Content = base64Data.split(',')[1];
+      }
+      
+      // Convert base64 to binary
+      const byteCharacters = atob(base64Content);
+      const byteArrays = [];
+      
+      for (let i = 0; i < byteCharacters.length; i += 1024) {
+        const slice = byteCharacters.slice(i, i + 1024);
+        const byteNumbers = new Array(slice.length);
+        
+        for (let j = 0; j < slice.length; j++) {
+          byteNumbers[j] = slice.charCodeAt(j);
+        }
+        
+        byteArrays.push(new Uint8Array(byteNumbers));
+      }
+      
+      // Store blob in ref to prevent garbage collection
+      videoBlobRef.current = new Blob(byteArrays, { type: 'video/mp4' });
+      console.log('Video blob created, size:', videoBlobRef.current.size);
+      
+      // Create and return blob URL
+      return URL.createObjectURL(videoBlobRef.current);
+    } catch (error) {
+      console.error('Error creating video blob:', error);
+      return null;
+    }
+  };
+  
   useEffect(() => {
     // First check URL params
     if (id) {
@@ -69,6 +112,16 @@ function AnalysisFeedback() {
       setBikeType(analysisResult.bike_type || 'road');
       setAnalysisId(analysisResult.analysisId);
       console.log("Direct analysis result:", analysisResult);
+      
+      // If we have a video in the results, process it immediately
+      if (analysisResult.video) {
+        const videoUrl = createVideoBlob(analysisResult.video);
+        if (videoUrl) {
+          setProcessedVideoUrl(videoUrl);
+          // Also update the result object with the URL
+          setResult(prev => ({...prev, videoUrl}));
+        }
+      }
       
       // If processed video is available, fetch it
       if (analysisResult.processed_video_available && analysisResult.analysisId) {
@@ -91,6 +144,7 @@ function AnalysisFeedback() {
             
             // Use the signed URL directly
             if (videoResponse.data && videoResponse.data.url) {
+              setProcessedVideoUrl(videoResponse.data.url);
               setResult(prevResult => ({...prevResult, videoUrl: videoResponse.data.url}));
               console.log('Successfully fetched processed video URL');
             } else {
@@ -147,38 +201,17 @@ function AnalysisFeedback() {
         state: { error: 'No analysis results found. Please upload a video first.' } 
       });
     }
-  }, [location, navigate, id]);
-
-  useEffect(() => {
-    if (result && result.video) {
-      try {
-        // Convert base64 to blob with explicit MIME type
-        const byteCharacters = atob(result.video.split(',')[1]);
-        const byteArrays = [];
-        
-        for (let i = 0; i < byteCharacters.length; i += 512) {
-          const slice = byteCharacters.slice(i, i + 512);
-          const byteNumbers = new Array(slice.length);
-          
-          for (let j = 0; j < slice.length; j++) {
-            byteNumbers[j] = slice.charCodeAt(j);
-          }
-          
-          const byteArray = new Uint8Array(byteNumbers);
-          byteArrays.push(byteArray);
-        }
-        
-        // Explicitly set MIME type to video/mp4
-        const blob = new Blob(byteArrays, { type: 'video/mp4' });
-        const url = URL.createObjectURL(blob);
-        
-        setProcessedVideoUrl(url);
-        console.log('Successfully created video blob URL');
-      } catch (error) {
-        console.error('Error creating video blob:', error);
+    
+    // Cleanup function to revoke blob URLs when the component unmounts
+    return () => {
+      if (processedVideoUrl && !processedVideoUrl.startsWith('http')) {
+        URL.revokeObjectURL(processedVideoUrl);
       }
-    }
-  }, [result]);
+      if (generatedVideoUrl) {
+        URL.revokeObjectURL(generatedVideoUrl);
+      }
+    };
+  }, [location, navigate, id]);
 
   // Function to fetch analysis by ID
   const fetchAnalysisById = async (id) => {
@@ -239,8 +272,8 @@ function AnalysisFeedback() {
           
           // Use the signed URL directly
           if (videoResponse.data && videoResponse.data.url) {
-            analysisResult.videoUrl = videoResponse.data.url;
-            setResult({...analysisResult, videoUrl: videoResponse.data.url});
+            setProcessedVideoUrl(videoResponse.data.url);
+            setResult(prev => ({...prev, videoUrl: videoResponse.data.url}));
             console.log('Successfully fetched processed video URL');
           }
         } catch (videoError) {
@@ -276,13 +309,6 @@ function AnalysisFeedback() {
           // Continue without keyframes if there's an error
         }
       }
-      
-      setProcessedVideoUrl(
-        `${process.env.REACT_APP_API_URL}/api/analysis/${id}/processed-video`
-      );
-      setKeyframesUrl(
-        `${process.env.REACT_APP_API_URL}/api/analysis/${id}/keyframes`
-      );
       
       setLoading(false);
     } catch (error) {
