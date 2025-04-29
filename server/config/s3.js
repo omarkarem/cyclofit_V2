@@ -45,19 +45,10 @@ const getSignedUrl = async (key, expiresIn = 3600) => {
   try {
     const command = new GetObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key,
-      ResponseContentDisposition: 'inline',
-      ResponseContentType: key.endsWith('.mp4') ? 'video/mp4' : 
-                         key.endsWith('.jpg') ? 'image/jpeg' : 
-                         key.endsWith('.png') ? 'image/png' : 
-                         'application/octet-stream'
+      Key: key
     });
     
-    return await generateSignedUrl(s3Client, command, { 
-      expiresIn,
-      // Explicitly define the signing region to match your S3 bucket's region
-      region: process.env.AWS_REGION
-    });
+    return await generateSignedUrl(s3Client, command, { expiresIn });
   } catch (error) {
     console.error('Error generating signed URL:', error);
     throw error;
