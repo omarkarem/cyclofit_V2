@@ -16,18 +16,14 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [fallbackUrl, setFallbackUrl] = useState(null);
   const [debugInfo, setDebugInfo] = useState("");
   const [showDebug, setShowDebug] = useState(false);
-  const [directUrl, setDirectUrl] = useState(null);
   
-  // Handle video URL processing when it changes
+  // Handle video URL changes
   useEffect(() => {
-    // Reset states when URL changes
     setLoading(true);
     setError(null);
-    setFallbackUrl(null);
-    setDirectUrl(videoUrl); // Store the original URL for direct access
+    setDebugInfo("");
     
     if (!videoUrl) {
       setError("No video URL provided");
@@ -39,50 +35,8 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
     console.log("Original video URL:", videoUrl);
     setDebugInfo(prev => prev + `Original URL: ${videoUrl}\n`);
     
-    // Check URL content type with a HEAD request first
-    if (videoUrl && videoUrl.startsWith('http')) {
-      // First check the content type with a HEAD request
-      fetch(videoUrl, { method: 'HEAD' })
-        .then(response => {
-          const contentType = response.headers.get('content-type');
-          console.log("Content-Type from HEAD:", contentType);
-          setDebugInfo(prev => prev + `Content-Type: ${contentType || 'unknown'}\n`);
-          
-          // Now fetch the actual content
-          return fetch(videoUrl);
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          
-          const contentType = response.headers.get('content-type');
-          console.log("Content-Type from GET:", contentType);
-          setDebugInfo(prev => prev + `GET Content-Type: ${contentType || 'unknown'}\n`);
-          
-          return response.blob();
-        })
-        .then(blob => {
-          console.log("Blob received:", blob.type, blob.size);
-          setDebugInfo(prev => prev + `Blob: ${blob.type}, size: ${blob.size}\n`);
-          
-          // Create a new blob with explicit video/mp4 MIME type - IMPORTANT FOR DESKTOP BROWSERS
-          const videoBlob = new Blob([blob], { type: 'video/mp4' });
-          console.log("Created new blob with video/mp4 type:", videoBlob.type);
-          setDebugInfo(prev => prev + `Created new blob with video/mp4 type\n`);
-          
-          const localBlobUrl = URL.createObjectURL(videoBlob);
-          console.log("Created blob URL:", localBlobUrl);
-          setDebugInfo(prev => prev + `Blob URL: ${localBlobUrl}\n`);
-          
-          setFallbackUrl(localBlobUrl);
-        })
-        .catch(err => {
-          console.error('Error fetching video:', err);
-          setDebugInfo(prev => prev + `Error: ${err.message}\n`);
-          // Continue without fallback, will use direct URL
-        });
-    }
+    // No fetch attempts - they trigger CORS errors
+    // Instead, we'll let the video element handle the URL directly
   }, [videoUrl]);
   
   useEffect(() => {
@@ -106,6 +60,7 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
       setError(`Error loading video: ${errorMessage}`);
       setLoading(false);
       setDebugInfo(prev => prev + `Video error: ${errorMessage}\n`);
+      setDebugInfo(prev => prev + `CORS issue detected. Try opening in new tab.\n`);
     };
     
     const handleLoadedData = () => {
@@ -125,15 +80,12 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
       videoElement.removeEventListener('error', handleError);
       videoElement.removeEventListener('loadeddata', handleLoadedData);
     };
-  }, [videoUrl, fallbackUrl]);
+  }, [videoUrl]);
   
-  // Determine the actual URL to use (fallback or original)
-  const effectiveUrl = fallbackUrl || videoUrl;
-  
-  // Handle direct URL download
-  const handleDirectDownload = () => {
-    if (directUrl) {
-      window.open(directUrl, '_blank');
+  // Handle direct URL access
+  const handleDirectAccess = () => {
+    if (videoUrl) {
+      window.open(videoUrl, '_blank');
     }
   };
   
@@ -146,37 +98,27 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
   const tryAlternativeFormat = () => {
     const videoElement = videoRef.current;
     if (videoElement) {
-      // Force reload with different MIME type
       videoElement.innerHTML = '';
-      const source1 = document.createElement('source');
-      source1.src = effectiveUrl;
-      source1.type = 'video/mp4; codecs="avc1"';
       
-      const source2 = document.createElement('source');
-      source2.src = effectiveUrl;
-      source2.type = 'video/webm';
+      // Try multiple sources with different MIME types
+      const formats = [
+        { type: 'video/mp4; codecs="avc1"' },
+        { type: 'video/mp4' },
+        { type: 'video/webm' }
+      ];
       
-      const source3 = document.createElement('source');
-      source3.src = effectiveUrl;
-      source3.type = 'video/quicktime';
+      formats.forEach(format => {
+        const source = document.createElement('source');
+        source.src = videoUrl;
+        source.type = format.type;
+        videoElement.appendChild(source);
+      });
       
-      videoElement.appendChild(source1);
-      videoElement.appendChild(source2);
-      videoElement.appendChild(source3);
       videoElement.load();
       
       setDebugInfo(prev => prev + `Tried alternative formats\n`);
     }
   };
-  
-  // Cleanup blob URLs when component unmounts
-  useEffect(() => {
-    return () => {
-      if (fallbackUrl) {
-        URL.revokeObjectURL(fallbackUrl);
-      }
-    };
-  }, [fallbackUrl]);
   
   return (
     <div className="mb-6">
@@ -193,12 +135,15 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
           <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white p-4 text-center">
             <div>
               <p className="mb-2">{error}</p>
-              <p className="text-sm text-gray-300">
-                The video couldn't be played in your browser.
+              <p className="text-sm text-gray-300 mb-2">
+                S3 CORS error detected. Please use the Open Video button below.
+              </p>
+              <p className="text-xs text-red-300">
+                To fix this permanently, you need to update your S3 bucket CORS settings.
               </p>
               <div className="mt-4 flex space-x-2 justify-center">
                 <button 
-                  onClick={handleDirectDownload}
+                  onClick={handleDirectAccess}
                   className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                 >
                   Open Video
@@ -220,6 +165,9 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
               {showDebug && (
                 <div className="mt-4 p-2 bg-gray-900 rounded text-xs text-left overflow-auto max-h-40">
                   <pre>{debugInfo}</pre>
+                  <p className="mt-2 text-yellow-300">
+                    Your S3 bucket needs CORS configuration to allow access from https://cyclofit.vercel.app
+                  </p>
                 </div>
               )}
             </div>
@@ -234,10 +182,11 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
               autoPlay={false}
               preload="metadata"
               playsInline
+              crossOrigin="anonymous"
             >
-              <source src={effectiveUrl} type="video/mp4; codecs='avc1'" />
-              <source src={effectiveUrl} type="video/mp4" />
-              <source src={effectiveUrl} type="video/webm" />
+              <source src={videoUrl} type="video/mp4; codecs='avc1'" />
+              <source src={videoUrl} type="video/mp4" />
+              <source src={videoUrl} type="video/webm" />
               <p className="text-white text-center p-4">
                 Your browser doesn't support HTML5 video.
               </p>
@@ -268,12 +217,37 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
             </button>
           )}
           <button
-            onClick={handleDirectDownload}
+            onClick={handleDirectAccess}
             className="px-4 py-2 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
           >
             Open in New Tab
           </button>
+          <a 
+            href={videoUrl} 
+            download="cyclofit-video.mp4"
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+          >
+            Download MP4
+          </a>
         </div>
+      </div>
+      
+      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+        <p className="font-semibold text-yellow-700">S3 Configuration Required</p>
+        <p className="text-yellow-600 mt-1">
+          To fix video playback issues, add this CORS policy to your S3 bucket:
+        </p>
+        <pre className="mt-2 p-2 bg-gray-800 text-xs text-white rounded overflow-auto">
+{`[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET"],
+    "AllowedOrigins": ["https://cyclofit.vercel.app"],
+    "ExposeHeaders": [],
+    "MaxAgeSeconds": 3000
+  }
+]`}
+        </pre>
       </div>
     </div>
   );
