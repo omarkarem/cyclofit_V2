@@ -36,7 +36,9 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
           return response.blob();
         })
         .then(blob => {
-          const localBlobUrl = URL.createObjectURL(blob);
+          // Create a new blob with explicit video/mp4 MIME type
+          const videoBlob = new Blob([blob], { type: 'video/mp4' });
+          const localBlobUrl = URL.createObjectURL(videoBlob);
           setFallbackUrl(localBlobUrl);
         })
         .catch(err => {
@@ -85,6 +87,13 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
   // Determine the actual URL to use (fallback or original)
   const effectiveUrl = fallbackUrl || videoUrl;
   
+  // Handle direct URL download for debugging
+  const handleDirectDownload = () => {
+    if (effectiveUrl) {
+      window.open(effectiveUrl, '_blank');
+    }
+  };
+  
   // Handle video rendering
   const renderVideo = () => {
     if (!effectiveUrl) return null;
@@ -95,12 +104,23 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
         className="w-full h-full" 
         controls
         autoPlay={false}
-        preload="auto"
+        preload="metadata"
         playsInline
-        // Removed crossOrigin to avoid CORS issues with direct playback
+        muted={false}
       >
+        {/* Support multiple formats for better compatibility */}
         <source src={effectiveUrl} type="video/mp4" />
-        Your browser does not support the video tag.
+        <source src={effectiveUrl} type="video/webm" />
+        <source src={effectiveUrl} type="video/quicktime" />
+        <p className="text-white text-center p-4">
+          Your browser doesn't support HTML5 video. 
+          <button 
+            onClick={handleDirectDownload}
+            className="ml-2 text-blue-400 underline"
+          >
+            Download video
+          </button>
+        </p>
       </video>
     );
   };
@@ -131,6 +151,12 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
               <p className="text-sm text-gray-300">
                 Try refreshing the page or view this video on a mobile device.
               </p>
+              <button 
+                onClick={handleDirectDownload}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              >
+                Download Video
+              </button>
             </div>
           </div>
         ) : (
