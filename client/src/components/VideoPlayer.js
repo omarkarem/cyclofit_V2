@@ -16,6 +16,35 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fallbackUrl, setFallbackUrl] = useState(null);
+  
+  // Handle video URL processing when it changes
+  useEffect(() => {
+    // Reset states when URL changes
+    setLoading(true);
+    setError(null);
+    setFallbackUrl(null);
+    
+    // Fetch the video directly to create a local blob URL
+    // This can help bypass CORS issues on desktop browsers
+    if (videoUrl && videoUrl.startsWith('http')) {
+      fetch(videoUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const localBlobUrl = URL.createObjectURL(blob);
+          setFallbackUrl(localBlobUrl);
+        })
+        .catch(err => {
+          console.error('Error fetching video for local blob:', err);
+          // Don't set error, just continue using original URL
+        });
+    }
+  }, [videoUrl]);
   
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -45,40 +74,45 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
     videoElement.addEventListener('error', handleError);
     videoElement.addEventListener('loadeddata', handleLoadedData);
     
-    // Reset state when video URL changes
-    setLoading(true);
-    setError(null);
-    
     return () => {
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.removeEventListener('error', handleError);
       videoElement.removeEventListener('loadeddata', handleLoadedData);
     };
-  }, [videoUrl]);
+  }, [videoUrl, fallbackUrl]);
   
-  // Use multiple sources to support different browsers
-  const getVideoSources = () => {
-    // For blob URLs or direct URLs, just use a single source
-    if (videoUrl && (videoUrl.startsWith('blob:') || videoUrl.startsWith('http'))) {
-      return <source src={videoUrl} type="video/mp4" />;
-    }
+  // Determine the actual URL to use (fallback or original)
+  const effectiveUrl = fallbackUrl || videoUrl;
+  
+  // Handle video rendering
+  const renderVideo = () => {
+    if (!effectiveUrl) return null;
     
-    // If it's base64 data, create a blob URL
-    if (videoUrl && videoUrl.startsWith('data:')) {
-      try {
-        const blob = fetch(videoUrl).then(r => r.blob());
-        const blobUrl = URL.createObjectURL(blob);
-        return <source src={blobUrl} type="video/mp4" />;
-      } catch (e) {
-        console.error('Error creating blob from data URL:', e);
-        return <source src={videoUrl} type="video/mp4" />;
-      }
-    }
-    
-    // Default case
-    return <source src={videoUrl} type="video/mp4" />;
+    return (
+      <video 
+        ref={videoRef}
+        className="w-full h-full" 
+        controls
+        autoPlay={false}
+        preload="auto"
+        playsInline
+        // Removed crossOrigin to avoid CORS issues with direct playback
+      >
+        <source src={effectiveUrl} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    );
   };
+  
+  // Cleanup blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (fallbackUrl) {
+        URL.revokeObjectURL(fallbackUrl);
+      }
+    };
+  }, [fallbackUrl]);
   
   return (
     <div className="mb-6">
@@ -100,18 +134,7 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
             </div>
           </div>
         ) : (
-          <video 
-            ref={videoRef}
-            className="w-full h-full" 
-            controls
-            autoPlay={false}
-            preload="auto"
-            playsInline
-            crossOrigin="anonymous"
-          >
-            {videoUrl ? getVideoSources() : null}
-            Your browser does not support the video tag.
-          </video>
+          renderVideo()
         )}
       </div>
       
