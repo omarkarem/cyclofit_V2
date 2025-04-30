@@ -91,7 +91,7 @@ function AnalysisFeedback() {
       return null;
     }
   };
-  
+
   useEffect(() => {
     // First check URL params
     if (id) {
