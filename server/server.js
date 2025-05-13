@@ -76,17 +76,12 @@ require('./config/passport');
 const app = express();
 
 // CORS - Put this FIRST before ANY other middleware
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://cyclofit.grity.co');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-  next();
-});
+app.use(cors({
+  origin: ['https://cyclofit.grity.co', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Rest of middleware
 app.use(express.json());
