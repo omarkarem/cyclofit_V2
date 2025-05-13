@@ -9,7 +9,7 @@ node_modules
 /coverage
 
 # production
-/build
+# /build  # Commented out to allow build directory
 
 # misc
 .DS_Store
