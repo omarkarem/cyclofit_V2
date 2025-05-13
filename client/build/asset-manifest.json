@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "/static/css/main.24d0db35.css",
+    "main.js": "/static/js/main.9b810523.js",
+    "static/js/453.419a5d54.chunk.js": "/static/js/453.419a5d54.chunk.js",
+    "static/media/Home_Cycling_Using_App.jpg": "/static/media/Home_Cycling_Using_App.3ef6fa56c95e6d21d492.jpg",
+    "static/media/Analysis.png": "/static/media/Analysis.b295ff0c9e64f1463b1a.png",
+    "static/media/Recommendations.png": "/static/media/Recommendations.8e7a07473d3d349182da.png",
+    "static/media/Video_Upload_Interface.png": "/static/media/Video_Upload_Interface.8b9c0e5463a4cc9b7666.png",
+    "index.html": "/index.html",
+    "main.24d0db35.css.map": "/static/css/main.24d0db35.css.map",
+    "main.9b810523.js.map": "/static/js/main.9b810523.js.map",
+    "453.419a5d54.chunk.js.map": "/static/js/453.419a5d54.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.24d0db35.css",
+    "static/js/main.9b810523.js"
+  ]
+}
