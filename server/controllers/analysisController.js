@@ -191,7 +191,7 @@ const processVideoWithAI = async (videoBuffer, userHeightCm, quality) => {
     
     // Send to Flask API for processing
     console.log('Sending video to processing API...');
-    const response = await axios.post(process.env.PYTHON_SERVER_URL || 'https://poseestimation-8520e3930676.herokuapp.com/process-video', formData, {
+    const response = await axios.post(process.env.PYTHON_SERVER_URL || 'https://cyclofit-ai.grity.co/process-video', formData, {
       headers: {
         ...formData.getHeaders(),
       },

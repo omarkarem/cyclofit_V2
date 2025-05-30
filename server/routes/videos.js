@@ -86,7 +86,7 @@ router.post('/process-video', upload.single('video'), async (req, res) => {
       console.log('Using user height for analysis:', user_height_cm, 'cm');
       
       // Send to the PosePython service (adjust URL as needed)
-      const posePythonResponse = await axios.post(process.env.PYTHON_SERVER_URL || 'https://poseestimation-8520e3930676.herokuapp.com/process-video', formData, {
+      const posePythonResponse = await axios.post(process.env.PYTHON_SERVER_URL || 'https://cyclofit-ai.grity.co/process-video', formData, {
         headers: {
           ...formData.getHeaders(),
           'Content-Type': 'multipart/form-data'

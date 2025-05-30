@@ -55,7 +55,7 @@ const upload = multer({
 });
 
 // Add configuration for the AI API endpoint
-const AI_ANALYSIS_URL = process.env.FLASK_API_URL || 'https://poseestimation-8520e3930676.herokuapp.com/process-video';
+const AI_ANALYSIS_URL = process.env.PYTHON_SERVER_URL || 'https://cyclofit-ai.grity.co/process-video';
 
 // Process video for analysis
 router.post('/process', ensureAuthenticated, upload.single('video'), async (req, res) => {
