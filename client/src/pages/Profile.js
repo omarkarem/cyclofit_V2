@@ -32,8 +32,6 @@ function Profile() {
         setLoading(true);
         const token = localStorage.getItem('token');
         
-        console.log('Fetching profile with token:', token ? 'Valid token exists' : 'No token found');
-        
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
           headers: { 
             Authorization: `Bearer ${token}`,
@@ -41,13 +39,9 @@ function Profile() {
           }
         });
         
-        console.log('Profile data received:', response.data);
-        
-        // The response structure from /api/auth/me is different - it includes user data in a 'user' property
         const userData = response.data.user || response.data;
         setUser(userData);
         
-        // Initialize form data with user data
         setFormData({
           name: userData.name?.firstName && userData.name?.lastName 
             ? `${userData.name.firstName} ${userData.name.lastName}` 
@@ -63,7 +57,6 @@ function Profile() {
       } catch (err) {
         console.error('Error fetching profile:', err);
         
-        // Try to get basic user data from localStorage as fallback
         let localUser = {};
         try {
           const userStr = localStorage.getItem('user');
@@ -113,12 +106,8 @@ function Profile() {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      console.log('Updating profile with token:', token ? 'Valid token exists' : 'No token found');
-      
-      // Process form data to match the expected server format
       const submitData = { ...formData };
       
-      // Convert name string to object if it's a string
       if (typeof formData.name === 'string' && formData.name.trim() !== '') {
         const nameParts = formData.name.trim().split(' ');
         submitData.name = {
@@ -127,9 +116,6 @@ function Profile() {
         };
       }
       
-      console.log('Sending profile data:', submitData);
-      
-      // Since the /api/users/profile endpoint doesn't exist, use /api/auth/update instead
       const response = await axios.put(`${process.env.REACT_APP_API_URL}/api/auth/update`, submitData, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -137,15 +123,10 @@ function Profile() {
         }
       });
       
-      console.log('Profile update response:', response.data);
-      
-      // Store updated user data in localStorage to ensure it's available for other components
       const updatedUser = response.data.user || {...user, ...submitData};
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // Update the user state with the updated data
       setUser(updatedUser);
-      
       setEditMode(false);
       setUpdateSuccess(true);
       setTimeout(() => setUpdateSuccess(false), 3000);
@@ -165,33 +146,24 @@ function Profile() {
 
   if (loading && !user) {
     return (
-      <div className="min-h-screen bg-secondary bg-opacity-10 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Loading Profile...</h2>
-          <div className="animate-pulse flex space-x-4">
-            <div className="rounded-full bg-secondary bg-opacity-20 h-12 w-12"></div>
-            <div className="flex-1 space-y-4 py-1">
-              <div className="h-4 bg-secondary bg-opacity-20 rounded w-3/4"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-secondary bg-opacity-20 rounded"></div>
-                <div className="h-4 bg-secondary bg-opacity-20 rounded w-5/6"></div>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-primary rounded-full mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !user) {
     return (
-      <div className="min-h-screen bg-secondary bg-opacity-10 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold mb-4 text-red-600">Error</h2>
-          <p className="text-secondary">{error}</p>
+          <p className="text-gray-600">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 bg-primary text-white px-4 py-2 rounded hover:bg-accent hover:text-dark"
+            className="mt-4 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
           >
             Try Again
           </button>
@@ -201,259 +173,272 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-secondary bg-opacity-5">
-      {/* App Header with Navigation */}
+    <div className="min-h-screen bg-gray-50">
       <DashboardNavbar />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 pt-28">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Profile Header */}
-          <div className="bg-white shadow-md overflow-hidden sm:rounded-lg mb-6">
-            <div className="relative">
-              {/* Cover Photo Area */}
-              <div className="h-32 sm:h-48 bg-gradient-to-r from-primary to-accent"></div>
-              
-              {/* Profile Photo and Basic Info */}
-              <div className="px-4 sm:px-6 lg:px-8 pb-5">
-                <div className="flex flex-col sm:flex-row items-center">
-                  <div className="-mt-16 sm:-mt-20">
-                    <div className="bg-white p-2 rounded-full inline-block ring-4 ring-white">
-                      <div className="bg-primary text-white h-24 w-24 sm:h-32 sm:w-32 rounded-full flex items-center justify-center text-3xl font-bold">
-                        {user?.name?.firstName?.charAt(0) || ''}
-                        {user?.name?.lastName?.charAt(0) || ''}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 sm:mt-0 sm:ml-4 text-center sm:text-left">
-                    <h2 className="text-2xl font-bold text-dark">
-                      {user?.name?.firstName ? `${user.name.firstName} ${user.name.lastName || ''}` : 'User'}
-                    </h2>
-                    <p className="text-secondary">
-                      {user?.email || 'No email available'}
-                    </p>
-                  </div>
-                  <div className="ml-auto mt-4 sm:mt-0">
-                    {!editMode ? (
-                      <button
-                        onClick={() => setEditMode(true)}
-                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-accent hover:text-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
-                      >
-                        Edit Profile
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setEditMode(false)}
-                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-dark bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-colors duration-200"
-                      >
-                        Cancel
-                      </button>
-                    )}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 sm:pt-24 lg:pt-28">
+        {/* Profile Header Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+          {/* Cover Photo */}
+          <div className="h-32 sm:h-48 bg-gradient-to-r from-primary to-accent"></div>
+          
+          {/* Profile Info */}
+          <div className="px-4 sm:px-6 lg:px-8 pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end -mt-12 sm:-mt-16">
+              {/* Avatar */}
+              <div className="flex-shrink-0">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white ring-4 ring-white flex items-center justify-center">
+                  <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">
+                      {user?.name?.firstName?.charAt(0) || ''}
+                      {user?.name?.lastName?.charAt(0) || ''}
+                    </span>
                   </div>
                 </div>
               </div>
+              
+              {/* Name and Email */}
+              <div className="mt-4 sm:mt-0 sm:ml-6 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  {user?.name?.firstName ? `${user.name.firstName} ${user.name.lastName || ''}` : 'User'}
+                </h1>
+                <p className="text-gray-600">{user?.email || 'No email available'}</p>
+              </div>
+              
+              {/* Edit Button */}
+              <div className="mt-4 sm:mt-0 sm:ml-6">
+                {!editMode ? (
+                  <button
+                    onClick={() => setEditMode(true)}
+                    className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Profile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setEditMode(false)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
-            
-            {updateSuccess && (
-              <div className="mx-4 sm:mx-6 lg:mx-8 mb-4 bg-primary bg-opacity-10 p-4 rounded-md border border-primary">
-                <p className="text-primary">Profile updated successfully!</p>
-              </div>
-            )}
-            
-            {/* Profile Information */}
-            {!editMode ? (
-              <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-secondary">Email</dt>
-                    <dd className="mt-1 text-sm text-dark">{user?.email || 'Not provided'}</dd>
-                  </div>
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-secondary">Height</dt>
-                    <dd className="mt-1 text-sm text-dark">{user?.height ? `${user.height} cm` : 'Not provided'}</dd>
-                  </div>
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-secondary">Weight</dt>
-                    <dd className="mt-1 text-sm text-dark">{user?.weight ? `${user.weight} kg` : 'Not provided'}</dd>
-                  </div>
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-secondary">Bike Type</dt>
-                    <dd className="mt-1 text-sm text-dark">{user?.bikeType || 'Not provided'}</dd>
-                  </div>
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-secondary">Experience Level</dt>
-                    <dd className="mt-1 text-sm text-dark">{user?.experience || 'Not provided'}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-sm font-medium text-secondary">Bio</dt>
-                    <dd className="mt-1 text-sm text-dark">{user?.bio || 'No bio provided'}</dd>
-                  </div>
-                </dl>
-              </div>
-            ) : (
-              <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
-                    <div className="sm:col-span-2">
-                      <label htmlFor="name" className="block text-sm font-medium text-secondary">
-                        Full Name
-                      </label>
-                      <div className="mt-1">
-                        <input
-                          type="text"
-                          name="name"
-                          id="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        />
-                      </div>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label htmlFor="email" className="block text-sm font-medium text-secondary">
-                        Email
-                      </label>
-                      <div className="mt-1">
-                        <input
-                          type="email"
-                          name="email"
-                          id="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                          disabled
-                        />
-                        <p className="mt-1 text-xs text-secondary">Email cannot be changed</p>
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="height" className="block text-sm font-medium text-secondary">
-                        Height (cm)
-                      </label>
-                      <div className="mt-1">
-                        <input
-                          type="number"
-                          name="height"
-                          id="height"
-                          value={formData.height}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="weight" className="block text-sm font-medium text-secondary">
-                        Weight (kg)
-                      </label>
-                      <div className="mt-1">
-                        <input
-                          type="number"
-                          name="weight"
-                          id="weight"
-                          value={formData.weight}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="bikeType" className="block text-sm font-medium text-secondary">
-                        Bike Type
-                      </label>
-                      <div className="mt-1">
-                        <select
-                          id="bikeType"
-                          name="bikeType"
-                          value={formData.bikeType}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        >
-                          <option value="">Select bike type</option>
-                          <option value="road">Road Bike</option>
-                          <option value="mountain">Mountain Bike</option>
-                          <option value="hybrid">Hybrid Bike</option>
-                          <option value="gravel">Gravel Bike</option>
-                          <option value="triathlon">Triathlon Bike</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="experience" className="block text-sm font-medium text-secondary">
-                        Experience Level
-                      </label>
-                      <div className="mt-1">
-                        <select
-                          id="experience"
-                          name="experience"
-                          value={formData.experience}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        >
-                          <option value="">Select experience level</option>
-                          <option value="beginner">Beginner</option>
-                          <option value="intermediate">Intermediate</option>
-                          <option value="advanced">Advanced</option>
-                          <option value="professional">Professional</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label htmlFor="bio" className="block text-sm font-medium text-secondary">
-                        Bio
-                      </label>
-                      <div className="mt-1">
-                        <textarea
-                          id="bio"
-                          name="bio"
-                          rows="3"
-                          value={formData.bio}
-                          onChange={handleInputChange}
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        ></textarea>
-                      </div>
-                      <p className="mt-2 text-sm text-secondary">
-                        Brief description about yourself as a cyclist.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditMode(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-secondary bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-accent hover:text-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                      disabled={loading}
-                    >
-                      {loading ? 'Saving...' : 'Save'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Success Message */}
+        {updateSuccess && (
+          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            Profile updated successfully!
+          </div>
+        )}
+
+        {/* Profile Details */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          {!editMode ? (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h2>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                  <p className="text-gray-900">{user?.email || 'Not provided'}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Experience Level</label>
+                  <p className="text-gray-900 capitalize">{user?.experience || 'Not provided'}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Height</label>
+                  <p className="text-gray-900">{user?.height ? `${user.height} cm` : 'Not provided'}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Weight</label>
+                  <p className="text-gray-900">{user?.weight ? `${user.weight} kg` : 'Not provided'}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Bike Type</label>
+                  <p className="text-gray-900 capitalize">{user?.bikeType || 'Not provided'}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Bio</label>
+                <p className="text-gray-900">{user?.bio || 'No bio provided'}</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Profile Information</h2>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="sm:col-span-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                
+                <div className="sm:col-span-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    id="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                    disabled
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+                </div>
+                
+                <div>
+                  <label htmlFor="height" className="block text-sm font-medium text-gray-700 mb-1">
+                    Height (cm)
+                  </label>
+                  <input
+                    type="number"
+                    name="height"
+                    id="height"
+                    value={formData.height}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1">
+                    Weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    name="weight"
+                    id="weight"
+                    value={formData.weight}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="bikeType" className="block text-sm font-medium text-gray-700 mb-1">
+                    Bike Type
+                  </label>
+                  <select
+                    id="bikeType"
+                    name="bikeType"
+                    value={formData.bikeType}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    <option value="">Select bike type</option>
+                    <option value="road">Road Bike</option>
+                    <option value="mountain">Mountain Bike</option>
+                    <option value="hybrid">Hybrid Bike</option>
+                    <option value="gravel">Gravel Bike</option>
+                    <option value="triathlon">Triathlon Bike</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
+                    Experience Level
+                  </label>
+                  <select
+                    id="experience"
+                    name="experience"
+                    value={formData.experience}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    <option value="">Select experience level</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="professional">Professional</option>
+                  </select>
+                </div>
+                
+                <div className="sm:col-span-2">
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+                    Bio
+                  </label>
+                  <textarea
+                    id="bio"
+                    name="bio"
+                    rows="4"
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    placeholder="Tell us about yourself as a cyclist..."
+                  ></textarea>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditMode(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
+                  disabled={loading}
+                >
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            to="/dashboard"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow text-center"
+          >
+            <svg className="w-8 h-8 text-primary mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="text-gray-700 font-medium">Back to Dashboard</span>
+          </Link>
+          
+          <Link
+            to="/video-upload"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow text-center"
+          >
+            <svg className="w-8 h-8 text-primary mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span className="text-gray-700 font-medium">New Analysis</span>
+          </Link>
         </div>
       </main>
     </div>
   );
 }
-
-// Add some CSS animations
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-in;
-  }
-`;
-document.head.appendChild(style);
 
 export default Profile; 

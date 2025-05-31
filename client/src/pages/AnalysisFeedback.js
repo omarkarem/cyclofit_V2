@@ -131,7 +131,7 @@ function AnalysisFeedback() {
       // Handle video URL if directly available (from upload)
       if (analysisResult.videoUrl) {
         const videoUrl = analysisResult.videoUrl;
-        setProcessedVideoUrl(videoUrl);
+          setProcessedVideoUrl(videoUrl);
         setResult(prev => ({...prev, videoUrl}));
       } else if (processedResult.processed_video_available && processedResult.analysisId && isMounted) {
         // Only fetch if we don't already have the URL
@@ -186,7 +186,7 @@ function AnalysisFeedback() {
             
             if (isMounted && keyframesResponse.data && keyframesResponse.data.keyframes) {
               const keyFrameUrls = keyframesResponse.data.keyframes.map(kf => kf.url);
-              setResult(prevResult => ({...prevResult, keyFrameUrls}));
+                setResult(prevResult => ({...prevResult, keyFrameUrls}));
               console.log('Successfully fetched keyframes');
             }
           } catch (keyframeError) {
@@ -262,8 +262,8 @@ function AnalysisFeedback() {
       
       // Set the result immediately
       if (isMounted) {
-        setResult(analysisResult);
-        setBikeType(analysis.bikeType || 'road');
+      setResult(analysisResult);
+      setBikeType(analysis.bikeType || 'road');
         setAnalysisId(analysis._id);
       }
       
@@ -314,14 +314,14 @@ function AnalysisFeedback() {
       }
       
       if (isMounted) {
-        setLoading(false);
+      setLoading(false);
       }
     } catch (error) {
       console.error('Error fetching analysis:', error);
       if (isMounted) {
-        setError('Failed to load analysis. Please try again.');
-        setLoading(false);
-      }
+      setError('Failed to load analysis. Please try again.');
+      setLoading(false);
+    }
     }
     
     // Cleanup

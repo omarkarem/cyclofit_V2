@@ -27,7 +27,7 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
     }
     
     // Just use the URL directly - modern browsers handle S3 signed URLs fine
-    setLoading(false);
+        setLoading(false);
   }, [videoUrl]);
   
   // Handle video events
@@ -145,43 +145,43 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
             </div>
           )}
           
-          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-            <video
-              ref={videoRef}
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <video
+            ref={videoRef}
               src={videoUrl}
-              className="w-full h-full"
-              controls
+            className="w-full h-full"
+            controls
               preload="metadata"
-              playsInline
-            />
-            
-            {/* Alternate fallback links */}
+            playsInline
+          />
+          
+          {/* Alternate fallback links */}
             <div className="absolute bottom-2 right-2 flex space-x-2 opacity-80 hover:opacity-100">
-              <button
-                onClick={handleOpenVideo}
-                className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+            <button
+              onClick={handleOpenVideo}
+              className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                 title="Open in new tab"
-              >
-                Open
-              </button>
-              
-              <a
-                href={videoUrl}
-                download="cyclofit-video.mp4"
-                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+            >
+              Open
+            </button>
+            
+            <a
+              href={videoUrl}
+              download="cyclofit-video.mp4"
+              className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
                 title="Download video"
-              >
-                Download
-              </a>
+            >
+              Download
+            </a>
             </div>
           </div>
         </div>
       )}
       
       {!error && duration > 0 && (
-        <div className="mt-1 flex justify-between text-sm text-gray-500">
-          <div>Time: {formatTime(currentTime)} / {formatTime(duration)}</div>
-        </div>
+      <div className="mt-1 flex justify-between text-sm text-gray-500">
+        <div>Time: {formatTime(currentTime)} / {formatTime(duration)}</div>
+      </div>
       )}
     </div>
   );
