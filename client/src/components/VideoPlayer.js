@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from 'react';
-import axios from 'axios';
 
 // Format time in seconds to MM:SS format
 const formatTime = (seconds) => {

@@ -6,7 +6,6 @@ import BikeRecommendations from '../components/BikeRecommendations';
 import BodyMeasurements from '../components/BodyMeasurements';
 import JointAngles from '../components/JointAngles';
 import axios from 'axios';
-import { base64ToBlob } from '../utils/videoUtils';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 
 // Format date to display date and time
