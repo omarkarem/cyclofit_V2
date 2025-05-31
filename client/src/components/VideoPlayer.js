@@ -46,7 +46,36 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
     
     const handleError = (e) => {
       console.error("Video playback error:", e);
-      setError("Video playback error. Please use the direct links below.");
+      const video = e.target;
+      let errorMessage = "Video playback error.";
+      
+      // Get more specific error information
+      if (video && video.error) {
+        switch (video.error.code) {
+          case 1:
+            errorMessage = "Video loading aborted.";
+            break;
+          case 2:
+            errorMessage = "Network error while loading video.";
+            break;
+          case 3:
+            errorMessage = "Video decoding error.";
+            break;
+          case 4:
+            errorMessage = "Video format not supported.";
+            break;
+          default:
+            errorMessage = `Video error: ${video.error.message || 'Unknown error'}`;
+        }
+      }
+      
+      console.error("Video error details:", {
+        url: videoUrl,
+        errorCode: video?.error?.code,
+        errorMessage: video?.error?.message
+      });
+      
+      setError(`${errorMessage} Please use the direct links below.`);
       setLoading(false);
     };
     
@@ -124,7 +153,6 @@ function VideoPlayer({ videoUrl, onDownload, title }) {
               controls
               preload="metadata"
               playsInline
-              crossOrigin="anonymous"
             />
             
             {/* Alternate fallback links */}

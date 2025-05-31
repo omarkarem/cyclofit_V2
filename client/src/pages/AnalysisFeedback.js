@@ -92,39 +92,49 @@ function AnalysisFeedback() {
     }
   };
 
+  // Main useEffect to handle initial data loading
   useEffect(() => {
+    let isMounted = true; // Add cleanup flag
+    
     // First check URL params
     if (id) {
-      console.log('Analysis ID from URL params:', id);
-      setAnalysisId(id);
+      // If we have an ID in the URL, fetch the analysis
       fetchAnalysisById(id);
+      return; // Exit early, fetchAnalysisById will handle everything
     }
-    // Then check if we have an analysis ID in the location state
-    else if (location.state?.analysisId) {
-      console.log('Analysis ID from location state:', location.state.analysisId);
-      setAnalysisId(location.state.analysisId);
-      fetchAnalysisById(location.state.analysisId);
-    }
-    // Check if we have direct analysis results from video processing
-    else if (location.state?.analysisResult) {
-      const analysisResult = location.state.analysisResult;
-      setResult(analysisResult);
-      setBikeType(analysisResult.bike_type || 'road');
-      setAnalysisId(analysisResult.analysisId);
-      console.log("Direct analysis result:", analysisResult);
+    
+    // Check if we have results from navigation state
+    const analysisResult = location.state?.analysisResult;
+    
+    if (analysisResult) {
+      // Clear location state to prevent issues on refresh
+      window.history.replaceState({}, document.title);
       
-      // If we have a video in the results, process it immediately
-      if (analysisResult.video) {
-        const videoUrl = createVideoBlob(analysisResult.video);
-        if (videoUrl) {
-          setProcessedVideoUrl(videoUrl);
-          // Also update the result object with the URL
-          setResult(prev => ({...prev, videoUrl}));
-        }
-      }
+      // Set the result and bike type
+      const processedResult = {
+        max_angles: analysisResult.max_angles || analysisResult.maxAngles,
+        min_angles: analysisResult.min_angles || analysisResult.minAngles,
+        body_lengths_cm: analysisResult.body_lengths_cm || analysisResult.bodyLengthsCm,
+        recommendations: analysisResult.recommendations,
+        bike_type: analysisResult.bike_type || analysisResult.bikeType || 'road',
+        analysisId: analysisResult.analysisId || analysisResult._id,
+        duration: analysisResult.duration,
+        processed_video_available: analysisResult.processed_video_available,
+        keyframes_available: analysisResult.keyframes_available,
+        keyframe_count: analysisResult.keyframe_count
+      };
       
-      // If processed video is available, fetch it
-      if (analysisResult.processed_video_available && analysisResult.analysisId) {
+      setResult(processedResult);
+      setBikeType(processedResult.bike_type);
+      setAnalysisId(processedResult.analysisId);
+      
+      // Handle video URL if directly available (from upload)
+      if (analysisResult.videoUrl) {
+        const videoUrl = analysisResult.videoUrl;
+        setProcessedVideoUrl(videoUrl);
+        setResult(prev => ({...prev, videoUrl}));
+      } else if (processedResult.processed_video_available && processedResult.analysisId && isMounted) {
+        // Only fetch if we don't already have the URL
         const fetchProcessedVideo = async () => {
           try {
             const token = localStorage.getItem('token');
@@ -134,7 +144,7 @@ function AnalysisFeedback() {
             }
             
             const videoResponse = await axios.get(
-              `${process.env.REACT_APP_API_URL}/api/analysis/${analysisResult.analysisId}/processed-video`, 
+              `${process.env.REACT_APP_API_URL}/api/analysis/${processedResult.analysisId}/processed-video`, 
               {
                 headers: {
                   Authorization: `Bearer ${token}`
@@ -142,13 +152,10 @@ function AnalysisFeedback() {
               }
             );
             
-            // Use the signed URL directly
-            if (videoResponse.data && videoResponse.data.url) {
+            if (isMounted && videoResponse.data && videoResponse.data.url) {
               setProcessedVideoUrl(videoResponse.data.url);
               setResult(prevResult => ({...prevResult, videoUrl: videoResponse.data.url}));
               console.log('Successfully fetched processed video URL');
-            } else {
-              console.error('No video URL returned from server');
             }
           } catch (videoError) {
             console.error('Error fetching processed video:', videoError);
@@ -158,8 +165,8 @@ function AnalysisFeedback() {
         fetchProcessedVideo();
       }
       
-      // If keyframes are available, fetch them
-      if (analysisResult.keyframes_available && analysisResult.keyframe_count > 0 && analysisResult.analysisId) {
+      // Handle keyframes similarly - only fetch if needed and mounted
+      if (processedResult.keyframes_available && processedResult.keyframe_count > 0 && processedResult.analysisId && isMounted) {
         const fetchKeyframes = async () => {
           try {
             const token = localStorage.getItem('token');
@@ -168,9 +175,8 @@ function AnalysisFeedback() {
               return;
             }
             
-            // Fetch all keyframes at once instead of individually
             const keyframesResponse = await axios.get(
-              `${process.env.REACT_APP_API_URL}/api/analysis/${analysisResult.analysisId}/keyframes`, 
+              `${process.env.REACT_APP_API_URL}/api/analysis/${processedResult.analysisId}/keyframes`, 
               {
                 headers: {
                   Authorization: `Bearer ${token}`
@@ -178,13 +184,10 @@ function AnalysisFeedback() {
               }
             );
             
-            if (keyframesResponse.data && keyframesResponse.data.keyframes) {
+            if (isMounted && keyframesResponse.data && keyframesResponse.data.keyframes) {
               const keyFrameUrls = keyframesResponse.data.keyframes.map(kf => kf.url);
-              
-              if (keyFrameUrls.length > 0) {
-                setResult(prevResult => ({...prevResult, keyFrameUrls}));
-                console.log('Successfully fetched keyframes for direct result');
-              }
+              setResult(prevResult => ({...prevResult, keyFrameUrls}));
+              console.log('Successfully fetched keyframes');
             }
           } catch (keyframeError) {
             console.error('Error fetching keyframes:', keyframeError);
@@ -202,8 +205,10 @@ function AnalysisFeedback() {
       });
     }
     
-    // Cleanup function to revoke blob URLs when the component unmounts
+    // Cleanup function
     return () => {
+      isMounted = false;
+      // Revoke blob URLs
       if (processedVideoUrl && !processedVideoUrl.startsWith('http')) {
         URL.revokeObjectURL(processedVideoUrl);
       }
@@ -211,10 +216,11 @@ function AnalysisFeedback() {
         URL.revokeObjectURL(generatedVideoUrl);
       }
     };
-  }, [location, navigate, id]);
+  }, [id, navigate]); // Remove location and other dependencies that cause re-renders
 
   // Function to fetch analysis by ID
   const fetchAnalysisById = async (id) => {
+    let isMounted = true;
     setLoading(true);
     setError('');
     
@@ -248,18 +254,21 @@ function AnalysisFeedback() {
         analysisId: analysis._id,
         duration: analysis.duration,
         createdAt: analysis.createdAt,
-        storage_type: analysis.storageType || 's3', // Default to S3 if not specified
+        storage_type: analysis.storageType || 's3',
         processed_video_available: !!analysis.processedVideo?.s3Key || !!analysis.processedVideo?.filePath,
         keyframes_available: Array.isArray(analysis.keyframes) && analysis.keyframes.length > 0,
         keyframe_count: Array.isArray(analysis.keyframes) ? analysis.keyframes.length : 0
       };
       
-      // Set the result
-      setResult(analysisResult);
-      setBikeType(analysis.bikeType || 'road');
+      // Set the result immediately
+      if (isMounted) {
+        setResult(analysisResult);
+        setBikeType(analysis.bikeType || 'road');
+        setAnalysisId(analysis._id);
+      }
       
-      // Fetch processed video if available
-      if (analysisResult.processed_video_available) {
+      // Fetch processed video if available - single request
+      if (analysisResult.processed_video_available && isMounted) {
         try {
           const videoResponse = await axios.get(
             `${process.env.REACT_APP_API_URL}/api/analysis/${id}/processed-video`, 
@@ -270,11 +279,10 @@ function AnalysisFeedback() {
             }
           );
           
-          // Use the signed URL directly
-          if (videoResponse.data && videoResponse.data.url) {
+          if (isMounted && videoResponse.data && videoResponse.data.url) {
             setProcessedVideoUrl(videoResponse.data.url);
             setResult(prev => ({...prev, videoUrl: videoResponse.data.url}));
-            console.log('Successfully fetched processed video URL');
+            console.log('Successfully fetched processed video URL from analysis');
           }
         } catch (videoError) {
           console.error('Error fetching processed video:', videoError);
@@ -282,10 +290,9 @@ function AnalysisFeedback() {
         }
       }
       
-      // Fetch keyframes if available
-      if (analysisResult.keyframes_available && analysisResult.keyframe_count > 0) {
+      // Fetch keyframes if available - single request
+      if (analysisResult.keyframes_available && analysisResult.keyframe_count > 0 && isMounted) {
         try {
-          // Fetch all keyframes at once
           const keyframesResponse = await axios.get(
             `${process.env.REACT_APP_API_URL}/api/analysis/${id}/keyframes`, 
             {
@@ -295,14 +302,10 @@ function AnalysisFeedback() {
             }
           );
           
-          if (keyframesResponse.data && keyframesResponse.data.keyframes) {
+          if (isMounted && keyframesResponse.data && keyframesResponse.data.keyframes) {
             const keyFrameUrls = keyframesResponse.data.keyframes.map(kf => kf.url);
-            
-            if (keyFrameUrls.length > 0) {
-              analysisResult.keyFrameUrls = keyFrameUrls;
-              setResult({...analysisResult, keyFrameUrls});
-              console.log('Successfully fetched keyframe URLs');
-            }
+            setResult(prev => ({...prev, keyFrameUrls}));
+            console.log('Successfully fetched keyframe URLs from analysis');
           }
         } catch (keyframeError) {
           console.error('Error fetching keyframes:', keyframeError);
@@ -310,12 +313,21 @@ function AnalysisFeedback() {
         }
       }
       
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Error fetching analysis:', error);
-      setError('Failed to load analysis. Please try again.');
-      setLoading(false);
+      if (isMounted) {
+        setError('Failed to load analysis. Please try again.');
+        setLoading(false);
+      }
     }
+    
+    // Cleanup
+    return () => {
+      isMounted = false;
+    };
   };
 
   const handleLogout = () => {

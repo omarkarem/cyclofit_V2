@@ -418,6 +418,32 @@ router.get('/status/s3', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// Test endpoint for video URL
+router.get('/:id/test-video', ensureAuthenticated, async (req, res) => {
+  try {
+    const videoUrl = await analysisController.getVideoUrl(req.params.id, req.user._id, 'processed');
+    
+    // Try to fetch the video headers to verify it's accessible
+    const fetch = require('node-fetch');
+    const headResponse = await fetch(videoUrl, { method: 'HEAD' });
+    
+    const headers = {};
+    headResponse.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    
+    res.json({ 
+      url: videoUrl,
+      status: headResponse.status,
+      headers: headers,
+      accessible: headResponse.ok
+    });
+  } catch (error) {
+    console.error('Error testing video:', error);
+    res.status(500).json({ error: 'Error testing video', details: error.message });
+  }
+});
+
 console.log('API URL:', process.env.REACT_APP_API_URL);
 
 module.exports = router; 
