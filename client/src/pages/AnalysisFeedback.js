@@ -43,29 +43,25 @@ function AnalysisFeedback() {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { id } = useParams(); // Get ID from URL params
+  const { id } = useParams();
   const [selectedFrame, setSelectedFrame] = useState(0);
   const [analysisId, setAnalysisId] = useState(null);
   const [processedVideoUrl, setProcessedVideoUrl] = useState(null);
   const [keyframesUrl, setKeyframesUrl] = useState(null);
-  // Add ref to store video blob
   const videoBlobRef = useRef(null);
   
   // Function to safely create a blob URL from base64 data
   const createVideoBlob = (base64Data) => {
     try {
-      // Clean up previous blob URL if it exists
       if (processedVideoUrl && !processedVideoUrl.startsWith('http')) {
         URL.revokeObjectURL(processedVideoUrl);
       }
       
-      // Handle video data encoding
       let base64Content = base64Data;
       if (base64Data.includes(',')) {
         base64Content = base64Data.split(',')[1];
       }
       
-      // Convert base64 to binary
       const byteCharacters = atob(base64Content);
       const byteArrays = [];
       
@@ -80,11 +76,9 @@ function AnalysisFeedback() {
         byteArrays.push(new Uint8Array(byteNumbers));
       }
       
-      // Store blob in ref to prevent garbage collection
       videoBlobRef.current = new Blob(byteArrays, { type: 'video/mp4' });
       console.log('Video blob created, size:', videoBlobRef.current.size);
       
-      // Create and return blob URL
       return URL.createObjectURL(videoBlobRef.current);
     } catch (error) {
       console.error('Error creating video blob:', error);
@@ -94,23 +88,18 @@ function AnalysisFeedback() {
 
   // Main useEffect to handle initial data loading
   useEffect(() => {
-    let isMounted = true; // Add cleanup flag
+    let isMounted = true;
     
-    // First check URL params
     if (id) {
-      // If we have an ID in the URL, fetch the analysis
       fetchAnalysisById(id);
-      return; // Exit early, fetchAnalysisById will handle everything
+      return;
     }
     
-    // Check if we have results from navigation state
     const analysisResult = location.state?.analysisResult;
     
     if (analysisResult) {
-      // Clear location state to prevent issues on refresh
       window.history.replaceState({}, document.title);
       
-      // Set the result and bike type
       const processedResult = {
         max_angles: analysisResult.max_angles || analysisResult.maxAngles,
         min_angles: analysisResult.min_angles || analysisResult.minAngles,
@@ -128,13 +117,11 @@ function AnalysisFeedback() {
       setBikeType(processedResult.bike_type);
       setAnalysisId(processedResult.analysisId);
       
-      // Handle video URL if directly available (from upload)
       if (analysisResult.videoUrl) {
         const videoUrl = analysisResult.videoUrl;
-          setProcessedVideoUrl(videoUrl);
+        setProcessedVideoUrl(videoUrl);
         setResult(prev => ({...prev, videoUrl}));
       } else if (processedResult.processed_video_available && processedResult.analysisId && isMounted) {
-        // Only fetch if we don't already have the URL
         const fetchProcessedVideo = async () => {
           try {
             const token = localStorage.getItem('token');
@@ -165,7 +152,6 @@ function AnalysisFeedback() {
         fetchProcessedVideo();
       }
       
-      // Handle keyframes similarly - only fetch if needed and mounted
       if (processedResult.keyframes_available && processedResult.keyframe_count > 0 && processedResult.analysisId && isMounted) {
         const fetchKeyframes = async () => {
           try {
@@ -199,16 +185,13 @@ function AnalysisFeedback() {
       
       setLoading(false);
     } else {
-      // If no results or ID, redirect back to upload page
       navigate('/video-upload', { 
         state: { error: 'No analysis results found. Please upload a video first.' } 
       });
     }
     
-    // Cleanup function
     return () => {
       isMounted = false;
-      // Revoke blob URLs
       if (processedVideoUrl && !processedVideoUrl.startsWith('http')) {
         URL.revokeObjectURL(processedVideoUrl);
       }
@@ -216,7 +199,7 @@ function AnalysisFeedback() {
         URL.revokeObjectURL(generatedVideoUrl);
       }
     };
-  }, [id, navigate]); // Remove location and other dependencies that cause re-renders
+  }, [id, navigate]);
 
   // Function to fetch analysis by ID
   const fetchAnalysisById = async (id) => {
@@ -231,7 +214,6 @@ function AnalysisFeedback() {
         return;
       }
       
-      // Fetch analysis data
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/analysis/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -244,7 +226,6 @@ function AnalysisFeedback() {
       
       const analysis = response.data.analysis;
       
-      // Transform database structure to match the expected result format
       const analysisResult = {
         max_angles: analysis.maxAngles,
         min_angles: analysis.minAngles,
@@ -260,14 +241,12 @@ function AnalysisFeedback() {
         keyframe_count: Array.isArray(analysis.keyframes) ? analysis.keyframes.length : 0
       };
       
-      // Set the result immediately
       if (isMounted) {
       setResult(analysisResult);
       setBikeType(analysis.bikeType || 'road');
         setAnalysisId(analysis._id);
       }
       
-      // Fetch processed video if available - single request
       if (analysisResult.processed_video_available && isMounted) {
         try {
           const videoResponse = await axios.get(
@@ -286,11 +265,9 @@ function AnalysisFeedback() {
           }
         } catch (videoError) {
           console.error('Error fetching processed video:', videoError);
-          // Continue without video if there's an error
         }
       }
       
-      // Fetch keyframes if available - single request
       if (analysisResult.keyframes_available && analysisResult.keyframe_count > 0 && isMounted) {
         try {
           const keyframesResponse = await axios.get(
@@ -309,7 +286,6 @@ function AnalysisFeedback() {
           }
         } catch (keyframeError) {
           console.error('Error fetching keyframes:', keyframeError);
-          // Continue without keyframes if there's an error
         }
       }
       
@@ -324,7 +300,6 @@ function AnalysisFeedback() {
     }
     }
     
-    // Cleanup
     return () => {
       isMounted = false;
     };
@@ -349,7 +324,6 @@ function AnalysisFeedback() {
         return;
       }
       
-      // Get the original video URL
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/api/analysis/${analysisId}/original-video`,
         {
@@ -360,7 +334,6 @@ function AnalysisFeedback() {
       );
       
       if (response.data && response.data.url) {
-        // Create a temporary link and click it to start the download
         const link = document.createElement('a');
         link.href = response.data.url;
         link.setAttribute('download', `CycloFit_Analysis_${analysisId}.mp4`);
@@ -376,12 +349,11 @@ function AnalysisFeedback() {
   };
   
   const resetForm = () => {
-    // Navigate back to upload page without any state
     navigate('/video-upload');
   };
 
   const generateVideoFromKeyframes = async () => {
-    setError(''); // Clear any previous errors
+    setError('');
     
     if (!result) {
       setError("No analysis results available");
@@ -403,25 +375,23 @@ function AnalysisFeedback() {
     try {
       console.log("Starting video generation from key frames:", result.keyFrameUrls);
       
-      // Create a canvas element
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         throw new Error("Could not get canvas context");
       }
       
-      const frameWidth = 640;  // Set your desired video dimensions
+      const frameWidth = 640;
       const frameHeight = 360;
       canvas.width = frameWidth;
       canvas.height = frameHeight;
       
-      // Load all images first
       const images = await Promise.all(
         result.keyFrameUrls.map((url, index) => {
           return new Promise((resolve, reject) => {
             if (!url) {
               console.warn(`Key frame ${index} URL is null or undefined`);
-              resolve(null); // Skip invalid URLs
+              resolve(null);
               return;
             }
             
@@ -432,15 +402,14 @@ function AnalysisFeedback() {
             };
             img.onerror = (e) => {
               console.warn(`Failed to load image from URL: ${url}`, e);
-              resolve(null); // Don't reject the whole Promise.all
+              resolve(null);
             };
-            img.crossOrigin = "anonymous"; // Try to avoid CORS issues
+            img.crossOrigin = "anonymous";
             img.src = url;
           });
         })
       );
       
-      // Filter out any null images
       const validImages = images.filter(img => img !== null);
       
       if (validImages.length === 0) {
@@ -449,16 +418,14 @@ function AnalysisFeedback() {
       
       console.log(`Successfully loaded ${validImages.length} images for video`);
       
-      // Create MediaRecorder to capture canvas as video
       let stream;
       try {
-        stream = canvas.captureStream(30); // 30 fps
+        stream = canvas.captureStream(30);
       } catch (streamError) {
         console.error("Error creating canvas stream:", streamError);
         throw new Error(`Failed to create canvas stream: ${streamError.message}`);
       }
       
-      // Check if MediaRecorder is supported with the given MIME type
       let mimeType = 'video/webm;codecs=vp9';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         console.warn(`${mimeType} is not supported, falling back to video/webm`);
@@ -478,7 +445,7 @@ function AnalysisFeedback() {
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: mimeType,
-        videoBitsPerSecond: 2500000 // 2.5 Mbps
+        videoBitsPerSecond: 2500000
       });
       
       const chunks = [];
@@ -519,9 +486,8 @@ function AnalysisFeedback() {
       mediaRecorder.start();
       console.log("MediaRecorder started");
       
-      // Draw each frame with a delay
       let frameIndex = 0;
-      const fps = result.fps || 10; // Default to 10fps if not provided by backend
+      const fps = result.fps || 10;
       const frameDuration = 1000 / fps;
       
       const drawNextFrame = () => {
@@ -532,7 +498,6 @@ function AnalysisFeedback() {
           frameIndex++;
           setTimeout(drawNextFrame, frameDuration);
         } else {
-          // Finished drawing all frames
           console.log("Finished drawing all frames");
           setTimeout(() => {
             try {
@@ -543,7 +508,7 @@ function AnalysisFeedback() {
               setError(`Failed to stop recording: ${stopError.message}`);
               setIsGeneratingVideo(false);
             }
-          }, 100); // Give a little time for the last frame
+          }, 100);
         }
       };
       
@@ -558,21 +523,11 @@ function AnalysisFeedback() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-secondary bg-opacity-10">
-        <DashboardNavbar />
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 pt-28">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <div className="animate-spin h-12 w-12 text-primary mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold text-dark">Loading Analysis Results...</h2>
-              <p className="text-secondary mt-2">Please wait while we prepare your bike fit analysis.</p>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-primary rounded-full mx-auto"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mt-4">Loading Analysis Results...</h2>
+          <p className="text-gray-600 mt-2">Please wait while we prepare your bike fit analysis.</p>
         </div>
       </div>
     );
@@ -580,21 +535,19 @@ function AnalysisFeedback() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-secondary bg-opacity-10">
+      <div className="min-h-screen bg-gray-50">
         <DashboardNavbar />
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 pt-28">
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <div className="text-red-600 mb-4">
-              <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 sm:pt-24 lg:pt-28">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="text-center">
+              <svg className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-center mb-4 text-dark">Error Loading Analysis</h2>
-            <p className="text-secondary text-center mb-6">{error}</p>
-            <div className="flex justify-center">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Analysis</h2>
+              <p className="text-gray-600 mb-6">{error}</p>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark"
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
               >
                 Return to Dashboard
               </button>
@@ -607,16 +560,19 @@ function AnalysisFeedback() {
 
   if (!result) {
     return (
-      <div className="min-h-screen bg-secondary bg-opacity-10">
+      <div className="min-h-screen bg-gray-50">
         <DashboardNavbar />
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 pt-28">
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-center mb-4 text-dark">No Analysis Results Available</h2>
-            <p className="text-secondary text-center mb-6">We couldn't find any analysis results to display.</p>
-            <div className="flex justify-center">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 sm:pt-24 lg:pt-28">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="text-center">
+              <svg className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">No Analysis Results Available</h2>
+              <p className="text-gray-600 mb-6">We couldn't find any analysis results to display.</p>
               <button
                 onClick={() => navigate('/video-upload')}
-                className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark"
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
               >
                 Create New Analysis
               </button>
@@ -628,124 +584,143 @@ function AnalysisFeedback() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary bg-opacity-10">
+    <div className="min-h-screen bg-gray-50">
       <DashboardNavbar />
       
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 pt-28">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow-lg sm:rounded-3xl sm:p-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-dark mb-4">Bike Fit Analysis Results</h1>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 sm:pt-24 lg:pt-28">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                Bike Fit Analysis Results
+              </h1>
               {result.createdAt && (
-                <div className="text-sm text-gray-500 mb-2">
+                <p className="text-sm text-gray-500">
                   Created: {formatDate(result.createdAt)}
-                </div>
+                </p>
               )}
-              <p className="text-secondary">
-                Review your bike fit analysis results and customized recommendations.
-              </p>
             </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Left column - Video and measurements */}
-              <div className="lg:col-span-7">
-                {/* Video section */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-semibold text-dark mb-4">Video Analysis</h2>
-                  {result.videoUrl ? (
-                    <>
-                      <VideoPlayer videoUrl={result.videoUrl} onDownload={handleDownload} />
-                      {result.duration && (
-                        <div className="mt-2 text-sm text-gray-600 flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Duration: {formatDuration(result.duration)}
-                        </div>
-                      )}
-                    </>
-                  ) : generatedVideoUrl ? (
-                    <VideoPlayer videoUrl={generatedVideoUrl} />
-                  ) : (
-                    <div className="bg-gray-100 p-6 rounded-lg text-center">
-                      <p className="text-gray-600 mb-4">
-                        {result.processed_video_available ? 
-                          "Loading video... If it doesn't appear, please try refreshing the page." :
-                          "Video processing failed or is not available for this analysis."}
-                      </p>
-                      
-                      {/* Show keyframe options if keyframes are available */}
-                      {result.keyFrameUrls && result.keyFrameUrls.length > 0 && (
-                        <div className="mt-6">
-                          <p className="text-gray-700 mb-2">Key frames are available for this analysis:</p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-4">
-                            {result.keyFrameUrls.map((url, index) => (
-                              <img 
-                                key={index} 
-                                src={url} 
-                                alt={`Keyframe ${index + 1}`}
-                                className="w-full h-auto rounded shadow-sm"
-                                onClick={() => setSelectedFrame(index)}
-                              />
-                            ))}
-                          </div>
-                          <button
-                            onClick={generateVideoFromKeyframes}
-                            className="mt-4 bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark disabled:opacity-50"
-                            disabled={isGeneratingVideo}
-                          >
-                            {isGeneratingVideo ? 'Generating Video...' : 'Generate Video from Keyframes'}
-                          </button>
-                        </div>
-                      )}
+            <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full">
+                {result.bike_type || 'Road'} Bike
+              </span>
+              {result.duration && (
+                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">
+                  {formatDuration(result.duration)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Video and Measurements */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Video Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Video Analysis</h2>
+              
+              {result.videoUrl ? (
+                <>
+                  <VideoPlayer videoUrl={result.videoUrl} onDownload={handleDownload} />
+                  {result.duration && (
+                    <div className="mt-2 flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Duration: {formatDuration(result.duration)}
                     </div>
                   )}
+                  <div className="mt-4">
+                    <button 
+                      onClick={handleDownload}
+                      className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      Download Video
+                    </button>
+                  </div>
+                </>
+              ) : generatedVideoUrl ? (
+                <VideoPlayer videoUrl={generatedVideoUrl} />
+              ) : (
+                <div className="bg-gray-100 rounded-lg p-6 text-center">
+                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-gray-600 mb-4">
+                    {result.processed_video_available ? 
+                      "Loading video... If it doesn't appear, please try refreshing the page." :
+                      "Video processing failed or is not available for this analysis."}
+                  </p>
                   
-                  {result.videoUrl && (
-                    <div className="mt-4">
-                      <button 
-                        onClick={handleDownload}
-                        className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark transition-colors"
+                  {/* Keyframes */}
+                  {result.keyFrameUrls && result.keyFrameUrls.length > 0 && (
+                    <div className="mt-6">
+                      <p className="text-gray-700 mb-3">Key frames available:</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-4">
+                        {result.keyFrameUrls.map((url, index) => (
+                          <img 
+                            key={index} 
+                            src={url} 
+                            alt={`Keyframe ${index + 1}`}
+                            className="w-full rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => setSelectedFrame(index)}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        onClick={generateVideoFromKeyframes}
+                        className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                        disabled={isGeneratingVideo}
                       >
-                        Download Video
+                        {isGeneratingVideo ? 'Generating Video...' : 'Generate Video from Keyframes'}
                       </button>
                     </div>
                   )}
                 </div>
-                
-                {/* Joint angles section */}
-                <div className="mb-8">
-                  <JointAngles maxAngles={result.max_angles} minAngles={result.min_angles} />
-                </div>
-                
-                {/* Body measurements section */}
-                <div className="mb-8">
-                  <BodyMeasurements bodyLengths={result.body_lengths_cm} />
-                </div>
-              </div>
-              
-              {/* Right column - Recommendations */}
-              <div className="lg:col-span-5">
+              )}
+            </div>
+            
+            {/* Joint Angles */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <JointAngles maxAngles={result.max_angles} minAngles={result.min_angles} />
+            </div>
+            
+            {/* Body Measurements */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <BodyMeasurements bodyLengths={result.body_lengths_cm} />
+            </div>
+          </div>
+          
+          {/* Right Column - Recommendations */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
                 <BikeRecommendations 
                   recommendations={result.recommendations} 
                   bikeType={bikeType} 
                   setBikeType={setBikeType} 
                 />
-                
-                <div className="flex flex-wrap gap-3 justify-end mt-8">
-                  <button 
-                    onClick={() => navigate('/dashboard')}
-                    className="bg-secondary bg-opacity-10 text-secondary px-4 py-2 rounded hover:bg-opacity-20 transition-colors"
-                  >
-                    Back to Dashboard
-                  </button>
-                  <button 
-                    onClick={resetForm}
-                    className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark transition-colors"
-                  >
-                    New Analysis
-                  </button>
-                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={() => navigate('/dashboard')}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center"
+                >
+                  Back to Dashboard
+                </button>
+                <button 
+                  onClick={resetForm}
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-center"
+                >
+                  New Analysis
+                </button>
               </div>
             </div>
           </div>
