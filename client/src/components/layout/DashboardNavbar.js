@@ -65,6 +65,12 @@ const DashboardNavbar = () => {
                     Video Analysis
                   </Link>
                   <Link 
+                    to="/comparison" 
+                    className={`${isActive('/comparison') ? 'border-accent text-accent' : 'border-transparent text-white hover:border-accent hover:text-accent'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                  >
+                    Compare Analyses
+                  </Link>
+                  <Link 
                     to="/profile" 
                     className={`${isActive('/profile') ? 'border-accent text-accent' : 'border-transparent text-white hover:border-accent hover:text-accent'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                   >
@@ -130,6 +136,13 @@ const DashboardNavbar = () => {
                 onClick={toggleMobileMenu}
               >
                 Video Analysis
+              </Link>
+              <Link 
+                to="/comparison" 
+                className={`${isActive('/comparison') ? 'text-accent font-semibold' : 'text-white'} block px-3 py-2 text-base font-medium`}
+                onClick={toggleMobileMenu}
+              >
+                Compare Analyses
               </Link>
               <Link 
                 to="/profile" 

@@ -100,26 +100,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Our Team */}
-      <section className="py-16 bg-[#393E46] bg-opacity-10">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8 text-center text-[#222832]">Our Team</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {teamMembers.map((member, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <img src={member.image} alt={member.name} className="w-full h-64 object-cover" />
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2 text-[#222832]">{member.name}</h3>
-                    <p className="text-[#00ADB5] mb-2">{member.role}</p>
-                    <p className="text-[#393E46]">{member.bio}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section className="py-16 bg-[#00ADB5] text-white">
         <div className="container mx-auto px-4 text-center">
@@ -128,10 +108,10 @@ const About = () => {
             Join thousands of cyclists who've improved their performance, comfort, and efficiency with CycloFit.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link to="/register" className="px-6 py-3 bg-[#222832] text-[#00FFF5] font-bold rounded-lg hover:bg-[#393E46] transition duration-300">
+            <Link to="/register" className="px-6 py-3 bg-[#222832] text-[#00FFF5] font-bold rounded-full hover:bg-[#393E46] transition duration-300">
               Start Your Free Trial
             </Link>
-            <Link to="/features" className="px-6 py-3 border-2 border-white text-white font-bold rounded-lg hover:bg-[#00FFF5] hover:text-[#222832] transition duration-300">
+            <Link to="/features" className="px-6 py-3 border-2 border-white text-white font-bold rounded-full hover:bg-[#00FFF5] hover:text-[#222832] transition duration-300">
               Learn More
             </Link>
           </div>

@@ -111,6 +111,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleCompareAnalysis = (analysis) => {
+    navigate('/comparison', {
+      state: {
+        preSelectedAnalyses: {
+          left: analysis,
+          right: null
+        }
+      }
+    });
+  };
+
   const formatDate = (dateString) => {
     const options = { 
       year: 'numeric', 
@@ -167,7 +178,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
           {/* Video Analysis Card */}
           <Link 
             to="/video-upload" 
@@ -194,15 +205,41 @@ const Dashboard = () => {
             </div>
           </Link>
 
-          {/* Profile Card */}
+          {/* Comparison Analysis Card */}
           <Link 
-            to="/profile" 
-            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-primary transition-all duration-200"
+            to="/comparison" 
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-secondary transition-all duration-200"
           >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-secondary bg-opacity-10 rounded-lg flex items-center justify-center group-hover:bg-secondary group-hover:bg-opacity-20 transition-colors">
                   <svg className="w-6 h-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Compare Analyses</h3>
+                <p className="text-gray-600 text-sm">Compare two sessions side-by-side to track progress</p>
+                <span className="inline-flex items-center text-secondary text-sm font-medium mt-3 group-hover:translate-x-1 transition-transform">
+                  Compare Results
+                  <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </Link>
+
+          {/* Profile Card */}
+          <Link 
+            to="/profile" 
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-accent transition-all duration-200"
+          >
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-accent bg-opacity-10 rounded-lg flex items-center justify-center group-hover:bg-accent group-hover:bg-opacity-20 transition-colors">
+                  <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -210,7 +247,7 @@ const Dashboard = () => {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">My Profile</h3>
                 <p className="text-gray-600 text-sm">View and update your personal information</p>
-                <span className="inline-flex items-center text-secondary text-sm font-medium mt-3 group-hover:translate-x-1 transition-transform">
+                <span className="inline-flex items-center text-accent text-sm font-medium mt-3 group-hover:translate-x-1 transition-transform">
                   View Profile
                   <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -311,12 +348,23 @@ const Dashboard = () => {
                       >
                         Delete
                       </button>
-                      <Link
-                        to={`/analysis/${analysis._id}`}
-                        className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
-                      >
-                        View Analysis
-                      </Link>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleCompareAnalysis(analysis)}
+                          className="inline-flex items-center px-3 py-2 bg-secondary text-white text-sm font-medium rounded-lg hover:bg-secondary-dark transition-colors"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          Compare
+                        </button>
+                        <Link
+                          to={`/analysis/${analysis._id}`}
+                          className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
+                        >
+                          View Analysis
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import ProfileSetup from './pages/ProfileSetup';
 import VideoUpload from './pages/VideoUpload';
 import AnalysisFeedback from './pages/AnalysisFeedback';
+import ComparisonAnalysis from './pages/ComparisonAnalysis';
 import Profile from './pages/Profile';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
@@ -164,6 +165,11 @@ function App() {
         <Route path="/analysis/:id" element={
           <ProtectedRoute>
             <AnalysisFeedback />
+          </ProtectedRoute>
+        } />
+        <Route path="/comparison" element={
+          <ProtectedRoute>
+            <ComparisonAnalysis />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
