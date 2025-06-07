@@ -28,6 +28,11 @@ const UserSchema = new mongoose.Schema({
       return !this.googleId;
     }
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'super_admin'],
+    default: 'user'
+  },
   profilePicture: {
     type: String
   },
@@ -39,6 +44,13 @@ const UserSchema = new mongoose.Schema({
   emailVerificationExpires: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  lastLoginAt: {
+    type: Date
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   // Additional fields for profile
   height: {
     type: Number,
@@ -65,7 +77,17 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
+});
+
+// Update the updatedAt field before saving
+UserSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 // Virtual for full name (for display purposes)

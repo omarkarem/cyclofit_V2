@@ -257,6 +257,10 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Update last login time
+    user.lastLoginAt = new Date();
+    await user.save();
+
     // Generate token
     const token = generateToken(user._id);
 
@@ -264,6 +268,7 @@ exports.login = async (req, res) => {
       _id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       token,
       isEmailVerified: user.isEmailVerified,
       height: user.height,
@@ -303,6 +308,7 @@ exports.getMe = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         profilePicture: user.profilePicture,
         isEmailVerified: user.isEmailVerified,
         height: user.height,

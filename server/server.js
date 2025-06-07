@@ -112,6 +112,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/analysis', require('./routes/analysis'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin-setup', require('./routes/adminSetup')); // TEMPORARY - Remove after admin creation
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
