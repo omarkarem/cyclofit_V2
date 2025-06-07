@@ -18,6 +18,12 @@ import Pricing from './pages/Pricing';
 import Blog from './pages/Blog';
 import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
+import AdminSetup from './pages/AdminSetup';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import AdminSystem from './pages/AdminSystem';
+import AdminAnalyses from './pages/AdminAnalyses';
+import AdminContacts from './pages/AdminContacts';
 import ScrollToTop from './components/ScrollToTop';
 
 // Protected route component
@@ -140,6 +146,9 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        
+        {/* Admin Setup - TEMPORARY (Remove after creating admins) */}
+        <Route path="/admin-setup" element={<AdminSetup />} />
         <Route path="/profile-setup" element={
           <ProtectedRoute>
             <ProfileSetup />
@@ -175,6 +184,33 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Routes - Protected */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/users" element={
+          <ProtectedRoute>
+            <AdminUsers />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/system" element={
+          <ProtectedRoute>
+            <AdminSystem />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/analyses" element={
+          <ProtectedRoute>
+            <AdminAnalyses />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/contacts" element={
+          <ProtectedRoute>
+            <AdminContacts />
           </ProtectedRoute>
         } />
 
