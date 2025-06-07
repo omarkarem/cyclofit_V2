@@ -43,6 +43,12 @@ function ProfileSetup() {
         
         setUser(res.data.user);
         
+        // If user is admin, redirect them to admin dashboard
+        if (res.data.user.role === 'admin' || res.data.user.role === 'super_admin') {
+          navigate('/admin/dashboard');
+          return;
+        }
+        
         // Pre-fill form with existing data if available
         if (res.data.user) {
           setFormData(prev => ({

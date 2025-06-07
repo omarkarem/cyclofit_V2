@@ -27,7 +27,14 @@ const Dashboard = () => {
         });
         setUser(res.data.user);
         
-        // Check if user has completed their profile
+        // Admin users don't need profile setup
+        if (res.data.user.role === 'admin' || res.data.user.role === 'super_admin') {
+          // Admins can access user dashboard without profile setup
+          setLoading(false);
+          return;
+        }
+        
+        // Check if regular user has completed their profile
         const isProfileComplete = 
           res.data.user.height && 
           res.data.user.weight && 

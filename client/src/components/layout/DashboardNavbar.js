@@ -6,6 +6,15 @@ const DashboardNavbar = () => {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  // Get user data to check if they're an admin
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
   
   // Add scroll event listener to change navbar appearance on scroll
   useEffect(() => {
@@ -79,11 +88,32 @@ const DashboardNavbar = () => {
                 </div>
               </div>
               
-              {/* Desktop Logout Button */}
-              <div className="hidden sm:ml-6 sm:flex sm:items-center">
+              {/* Desktop Actions */}
+              <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+                {/* Admin Indicator & Back to Admin Link */}
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <>
+                    <div className="flex items-center px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                      <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Admin View
+                    </div>
+                    <Link
+                      to="/admin/dashboard"
+                      className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Back to Admin
+                    </Link>
+                  </>
+                )}
+                
                 <button
                   onClick={handleLogout}
-                  className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-dark bg-primary hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-dark bg-primary hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -152,6 +182,30 @@ const DashboardNavbar = () => {
                 My Profile
               </Link>
               <div className="pt-4 mt-4 border-t border-secondary">
+                {/* Admin Indicator & Back to Admin Link for Mobile */}
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <>
+                    <div className="flex items-center px-3 py-2 mb-2">
+                      <div className="flex items-center px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                        <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Admin View
+                      </div>
+                    </div>
+                    <Link
+                      to="/admin/dashboard"
+                      className="flex items-center px-3 py-2 text-base font-medium text-red-300 hover:text-red-100"
+                      onClick={toggleMobileMenu}
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Back to Admin Panel
+                    </Link>
+                  </>
+                )}
+                
                 <button
                   onClick={() => {
                     handleLogout();

@@ -52,17 +52,24 @@ function Login() {
       
       // Check if profile is complete by looking at additional profile fields
       const user = res.data;
-      const isProfileComplete = 
-        user.height && 
-        user.weight && 
-        user.experience;
       
-      // If profile is not complete, redirect to profile setup
-      if (!isProfileComplete) {
-        navigate('/profile-setup');
+      // Admin users don't need profile setup, redirect them to admin dashboard
+      if (user.role === 'admin' || user.role === 'super_admin') {
+        navigate('/admin/dashboard', { replace: true });
       } else {
-      // Redirect to dashboard or previous page
-      navigate(from, { replace: true });
+        // For regular users, check if profile is complete
+        const isProfileComplete = 
+          user.height && 
+          user.weight && 
+          user.experience;
+        
+        // If profile is not complete, redirect to profile setup
+        if (!isProfileComplete) {
+          navigate('/profile-setup');
+        } else {
+          // Redirect to dashboard or previous page
+          navigate(from, { replace: true });
+        }
       }
     } catch (err) {
       setLoading(false);
