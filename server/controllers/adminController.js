@@ -799,7 +799,6 @@ exports.updateContactStatus = async (req, res) => {
     }
 
     contact.status = status;
-    contact.updatedAt = new Date();
     await contact.save();
 
     res.json({

@@ -22,15 +22,13 @@ const ContactSchema = new mongoose.Schema({
     required: [true, 'Message is required'],
     trim: true
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
   status: {
     type: String,
     enum: ['new', 'read', 'replied', 'closed'],
     default: 'new'
   }
+}, {
+  timestamps: true // This automatically adds createdAt and updatedAt
 });
 
 module.exports = mongoose.model('Contact', ContactSchema); 
