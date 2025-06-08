@@ -86,7 +86,7 @@ exports.getDashboardStats = async (req, res) => {
     const mostActiveUsers = await Analysis.aggregate([
       {
         $group: {
-          _id: "$userId",
+          _id: "$user",
           analysisCount: { $sum: 1 },
           lastAnalysis: { $max: "$createdAt" }
         }
@@ -195,7 +195,7 @@ exports.getAllUsers = async (req, res) => {
     // Get analysis count for each user
     const usersWithAnalysisCount = await Promise.all(
       users.map(async (user) => {
-        const analysisCount = await Analysis.countDocuments({ userId: user._id });
+        const analysisCount = await Analysis.countDocuments({ user: user._id });
         return {
           ...user.toObject(),
           analysisCount
@@ -386,14 +386,55 @@ exports.getAllAnalyses = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
+    // Build aggregation pipeline
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userId'
+        }
+      },
+      {
+        $unwind: '$userId'
+      }
+    ];
+
+    // Add search filter if provided
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'userId.name.firstName': { $regex: search, $options: 'i' } },
+            { 'userId.name.lastName': { $regex: search, $options: 'i' } },
+            { 'userId.email': { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    // Add other filters
+    if (Object.keys(filter).length > 0) {
+      pipeline.push({ $match: filter });
+    }
+
+    // Add sorting, pagination
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    );
+
     const [analyses, totalAnalyses] = await Promise.all([
-      Analysis.find(filter)
-        .populate('userId', 'name email')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      Analysis.countDocuments(filter)
+      Analysis.aggregate(pipeline),
+      Analysis.aggregate([
+        ...pipeline.slice(0, -3), // Remove sort, skip, limit for count
+        { $count: 'total' }
+      ])
     ]);
+
+    const totalCount = totalAnalyses.length > 0 ? totalAnalyses[0].total : 0;
 
     res.json({
       success: true,
@@ -401,8 +442,8 @@ exports.getAllAnalyses = async (req, res) => {
         analyses,
         pagination: {
           currentPage: page,
-          totalPages: Math.ceil(totalAnalyses / limit),
-          totalAnalyses,
+          totalPages: Math.ceil(totalCount / limit),
+          totalAnalyses: totalCount,
           limit
         }
       }
