@@ -503,15 +503,25 @@ exports.getAnalysisById = async (req, res) => {
       });
     }
 
-    // Add a field to indicate which storage type is being used
-    const storageType = 
-      (analysis.originalVideo && analysis.originalVideo.s3Key) ? 's3' : 
-      (analysis.originalVideo && analysis.originalVideo.filePath) ? 'local' : 
-      'unknown';
-    
     // Transform for client (add some helpful flags)
     const analysisData = analysis.toObject();
-    analysisData.storageType = storageType;
+    
+    // Use the model's storageType if available, otherwise determine from files
+    if (!analysisData.storageType || analysisData.storageType === 'local') {
+      analysisData.storageType = 
+        (analysis.processedVideo && analysis.processedVideo.s3Key) ? 's3' : 
+        (analysis.processedVideo && analysis.processedVideo.filePath) ? 'local' :
+        (analysis.originalVideo && analysis.originalVideo.s3Key) ? 's3' : 
+        (analysis.originalVideo && analysis.originalVideo.filePath) ? 'local' : 
+        analysisData.storageType || 'unknown';
+    }
+    
+    // Ensure duration is properly set - use originalVideo duration if analysis duration not available
+    if (!analysisData.duration && analysis.originalVideo && analysis.originalVideo.duration) {
+      analysisData.duration = analysis.originalVideo.duration;
+    }
+    
+    console.log('Analysis duration:', analysisData.duration, 'Storage type:', analysisData.storageType);
     
     // Check for video availability using both fields
     analysisData.processed_video_available = !!analysis.processedVideo?.s3Key || !!analysis.processedVideo?.filePath;

@@ -34,6 +34,7 @@ const AdminAnalysisView = () => {
       });
       
       const analysisData = response.data.data.analysis;
+      console.log('Admin Analysis Data:', analysisData); // Debug log
       setAnalysis(analysisData);
       
       // Fetch processed video if available
@@ -224,7 +225,7 @@ const AdminAnalysisView = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Storage:</span>
-                  <span className="text-sm font-medium capitalize">{analysis.storageType}</span>
+                  <span className="text-sm font-medium capitalize">{analysis.storageType || 'Unknown'}</span>
                 </div>
               </div>
             </div>
