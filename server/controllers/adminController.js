@@ -246,6 +246,22 @@ exports.toggleUserStatus = async (req, res) => {
       });
     }
 
+    // Prevent users from deactivating themselves
+    if (userId === req.user._id.toString()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You cannot deactivate your own account' 
+      });
+    }
+
+    // Regular admins can only toggle user and admin accounts, not super admins
+    if (req.user.role === 'admin' && user.role === 'super_admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only super admins can modify super admin accounts' 
+      });
+    }
+
     user.isActive = !user.isActive;
     await user.save();
 
@@ -288,11 +304,37 @@ exports.updateUserRole = async (req, res) => {
       });
     }
 
+    // Check permissions based on the requesting user's role
+    const requestingUserRole = req.user.role;
+
     // Only super admins can create other super admins
-    if (role === 'super_admin' && req.user.role !== 'super_admin') {
+    if (role === 'super_admin' && requestingUserRole !== 'super_admin') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Only super admins can create other super admins' 
+        message: 'Only super admins can assign super admin roles' 
+      });
+    }
+
+    // Regular admins cannot modify super admin users
+    if (user.role === 'super_admin' && requestingUserRole !== 'super_admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only super admins can modify super admin accounts' 
+      });
+    }
+
+    // Regular admins can only modify users and other regular admins
+    if (requestingUserRole === 'admin' && 
+        !['user', 'admin'].includes(user.role) && 
+        role !== 'super_admin') {
+      // This allows admins to update user/admin roles but not create super admins
+    }
+
+    // Prevent users from changing their own role
+    if (userId === req.user._id.toString()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You cannot change your own role' 
       });
     }
 

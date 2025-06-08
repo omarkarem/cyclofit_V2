@@ -9,7 +9,7 @@ router.get('/dashboard/stats', adminAuth, adminController.getDashboardStats);
 // User Management
 router.get('/users', adminAuth, adminController.getAllUsers);
 router.patch('/users/:userId/status', adminAuth, adminController.toggleUserStatus);
-router.patch('/users/:userId/role', superAdminAuth, adminController.updateUserRole);
+router.patch('/users/:userId/role', adminAuth, adminController.updateUserRole);
 
 // Analysis Management
 router.get('/analyses', adminAuth, adminController.getAllAnalyses);

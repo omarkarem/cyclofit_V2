@@ -17,11 +17,34 @@ const AdminUsers = () => {
   });
   const [pagination, setPagination] = useState({});
   const [actionLoading, setActionLoading] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Get current user info from localStorage
+    const user = localStorage.getItem('user');
+    if (user) {
+      setCurrentUser(JSON.parse(user));
+    }
     fetchUsers();
   }, [filters]);
+
+  // Clear messages after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => setErrorMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
 
   const fetchUsers = async () => {
     const token = localStorage.getItem('token');
@@ -75,61 +98,116 @@ const AdminUsers = () => {
 
   const toggleUserStatus = async (userId, currentStatus) => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      setErrorMessage('Authentication required. Please log in again.');
+      return;
+    }
+
     try {
       setActionLoading(prev => ({ ...prev, [userId]: true }));
+      setErrorMessage('');
+      setSuccessMessage('');
       
-      await axios.patch(
+      const response = await axios.patch(
         `${process.env.REACT_APP_API_URL}/api/admin/users/${userId}/status`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );
 
-      // Update user in local state
-      setUsers(prev => prev.map(user => 
-        user._id === userId 
-          ? { ...user, isActive: !currentStatus }
-          : user
-      ));
+      if (response.data.success) {
+        // Update user in local state
+        setUsers(prev => prev.map(user => 
+          user._id === userId 
+            ? { ...user, isActive: !currentStatus }
+            : user
+        ));
+
+        const action = currentStatus ? 'deactivated' : 'activated';
+        setSuccessMessage(`User successfully ${action}.`);
+      }
 
       setActionLoading(prev => ({ ...prev, [userId]: false }));
     } catch (err) {
       console.error('Error toggling user status:', err);
       setActionLoading(prev => ({ ...prev, [userId]: false }));
-      alert('Failed to update user status');
+      
+      let errorMsg = 'Failed to update user status';
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.status === 403) {
+        errorMsg = 'Access denied. You do not have permission to perform this action.';
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Authentication failed. Please log in again.';
+        navigate('/login');
+        return;
+      }
+      
+      setErrorMessage(errorMsg);
     }
   };
 
   const updateUserRole = async (userId, newRole) => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      setErrorMessage('Authentication required. Please log in again.');
+      return;
+    }
+
+    // Check permissions
+    if (newRole === 'super_admin' && currentUser?.role !== 'super_admin') {
+      setErrorMessage('Only super admins can assign super admin roles.');
+      return;
+    }
+
     try {
       setActionLoading(prev => ({ ...prev, [userId]: true }));
+      setErrorMessage('');
+      setSuccessMessage('');
       
-      await axios.patch(
+      const response = await axios.patch(
         `${process.env.REACT_APP_API_URL}/api/admin/users/${userId}/role`,
         { role: newRole },
         {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );
 
-      // Update user in local state
-      setUsers(prev => prev.map(user => 
-        user._id === userId 
-          ? { ...user, role: newRole }
-          : user
-      ));
+      if (response.data.success) {
+        // Update user in local state
+        setUsers(prev => prev.map(user => 
+          user._id === userId 
+            ? { ...user, role: newRole }
+            : user
+        ));
+
+        setSuccessMessage(`User role updated to ${newRole.replace('_', ' ')} successfully.`);
+      }
 
       setActionLoading(prev => ({ ...prev, [userId]: false }));
     } catch (err) {
       console.error('Error updating user role:', err);
       setActionLoading(prev => ({ ...prev, [userId]: false }));
-      alert(err.response?.data?.message || 'Failed to update user role');
+      
+      let errorMsg = 'Failed to update user role';
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.status === 403) {
+        errorMsg = 'Access denied. You may not have permission to assign this role.';
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Authentication failed. Please log in again.';
+        navigate('/login');
+        return;
+      }
+      
+      setErrorMessage(errorMsg);
     }
   };
 
@@ -158,6 +236,45 @@ const AdminUsers = () => {
     return isActive 
       ? 'bg-green-100 text-green-800 border-green-200'
       : 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const canUpdateRole = (targetUser) => {
+    // Can't modify own role
+    if (targetUser._id === currentUser?._id) return false;
+    
+    // Super admins can update anyone (except themselves)
+    if (currentUser?.role === 'super_admin') return true;
+    
+    // Regular admins can't modify super admins
+    if (targetUser.role === 'super_admin') return false;
+    
+    // Regular admins can modify users and other admins (but can't make super admins)
+    return currentUser?.role === 'admin';
+  };
+
+  const canToggleStatus = (targetUser) => {
+    // Can't toggle own status
+    if (targetUser._id === currentUser?._id) return false;
+    
+    // Can't toggle super admin status
+    if (targetUser.role === 'super_admin') return false;
+    
+    // Admins and super admins can toggle user/admin status
+    return ['admin', 'super_admin'].includes(currentUser?.role);
+  };
+
+  const getAvailableRoles = (targetUser) => {
+    const roles = [
+      { value: 'user', label: 'User' },
+      { value: 'admin', label: 'Admin' }
+    ];
+
+    // Only super admins can assign super admin role
+    if (currentUser?.role === 'super_admin') {
+      roles.push({ value: 'super_admin', label: 'Super Admin' });
+    }
+
+    return roles;
   };
 
   if (loading && users.length === 0) {
@@ -195,6 +312,37 @@ const AdminUsers = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
           <p className="text-gray-600">Manage user accounts, roles, and permissions</p>
         </div>
+
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">{successMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-red-800">{errorMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
@@ -310,18 +458,26 @@ const AdminUsers = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={user.role}
-                        onChange={(e) => updateUserRole(user._id, e.target.value)}
-                        disabled={actionLoading[user._id] || user.role === 'super_admin'}
-                        className={`text-xs px-2 py-1 rounded-full border ${getRoleBadgeColor(user.role)} ${
-                          user.role === 'super_admin' ? 'cursor-not-allowed' : 'cursor-pointer'
-                        }`}
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                      </select>
+                      {canUpdateRole(user) ? (
+                        <select
+                          value={user.role}
+                          onChange={(e) => updateUserRole(user._id, e.target.value)}
+                          disabled={actionLoading[user._id]}
+                          className={`text-xs px-2 py-1 rounded-full border cursor-pointer ${getRoleBadgeColor(user.role)} ${
+                            actionLoading[user._id] ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {getAvailableRoles(user).map(role => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getRoleBadgeColor(user.role)}`}>
+                          {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'User'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusBadgeColor(user.isActive)}`}>
@@ -338,23 +494,27 @@ const AdminUsers = () => {
                       {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => toggleUserStatus(user._id, user.isActive)}
-                        disabled={actionLoading[user._id] || user.role === 'super_admin'}
-                        className={`inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md ${
-                          user.isActive
-                            ? 'text-red-700 bg-red-100 hover:bg-red-200'
-                            : 'text-green-700 bg-green-100 hover:bg-green-200'
-                        } focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          user.role === 'super_admin' ? 'cursor-not-allowed opacity-50' : ''
-                        }`}
-                      >
-                        {actionLoading[user._id] ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          user.isActive ? 'Deactivate' : 'Activate'
-                        )}
-                      </button>
+                      {canToggleStatus(user) ? (
+                        <button
+                          onClick={() => toggleUserStatus(user._id, user.isActive)}
+                          disabled={actionLoading[user._id]}
+                          className={`inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md transition-colors ${
+                            user.isActive
+                              ? 'text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500'
+                              : 'text-green-700 bg-green-100 hover:bg-green-200 focus:ring-green-500'
+                          } focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                            actionLoading[user._id] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
+                        >
+                          {actionLoading[user._id] ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            user.isActive ? 'Deactivate' : 'Activate'
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No action</span>
+                      )}
                     </td>
                   </tr>
                 ))}
