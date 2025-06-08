@@ -3,7 +3,7 @@ const Analysis = require('../models/Analysis');
 const Contact = require('../models/Contact');
 const Newsletter = require('../models/Newsletter');
 const mongoose = require('mongoose');
-const { getSignedUrl, uploadToS3, deleteFromS3 } = require('../utils/s3Utils');
+const { getSignedUrl, uploadToS3, deleteFromS3 } = require('../config/s3');
 const path = require('path');
 const fs = require('fs');
 
