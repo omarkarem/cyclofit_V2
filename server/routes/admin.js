@@ -10,7 +10,6 @@ router.get('/dashboard/stats', adminAuth, adminController.getDashboardStats);
 router.get('/users', adminAuth, adminController.getAllUsers);
 router.patch('/users/:userId/status', adminAuth, adminController.toggleUserStatus);
 router.patch('/users/:userId/role', adminAuth, adminController.updateUserRole);
-router.patch('/users/:userId/email-verification', adminAuth, adminController.toggleEmailVerification);
 
 // Analysis Management
 router.get('/analyses', adminAuth, adminController.getAllAnalyses);
