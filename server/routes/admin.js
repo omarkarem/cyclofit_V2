@@ -14,6 +14,9 @@ router.patch('/users/:userId/role', adminAuth, adminController.updateUserRole);
 // Analysis Management
 router.get('/analyses', adminAuth, adminController.getAllAnalyses);
 router.get('/analyses/:analysisId', adminAuth, adminController.getAnalysisById);
+router.get('/analyses/:analysisId/processed-video', adminAuth, adminController.getProcessedVideo);
+router.get('/analyses/:analysisId/original-video', adminAuth, adminController.getOriginalVideo);
+router.get('/analyses/:analysisId/keyframes', adminAuth, adminController.getKeyframes);
 router.delete('/analyses/:analysisId', adminAuth, adminController.deleteAnalysis);
 
 // Contact Form Management

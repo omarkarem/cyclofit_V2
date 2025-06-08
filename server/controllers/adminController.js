@@ -3,6 +3,9 @@ const Analysis = require('../models/Analysis');
 const Contact = require('../models/Contact');
 const Newsletter = require('../models/Newsletter');
 const mongoose = require('mongoose');
+const { getSignedUrl, uploadToS3, deleteFromS3 } = require('../utils/s3Utils');
+const path = require('path');
+const fs = require('fs');
 
 // Dashboard Analytics
 exports.getDashboardStats = async (req, res) => {
@@ -528,6 +531,165 @@ exports.getAnalysisById = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch analysis',
+      error: error.message 
+    });
+  }
+};
+
+// Get Processed Video (Admin)
+exports.getProcessedVideo = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    
+    const analysis = await Analysis.findById(analysisId);
+    if (!analysis) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Analysis not found' 
+      });
+    }
+
+    const videoData = analysis.processedVideo;
+    if (!videoData) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Processed video not found' 
+      });
+    }
+
+    let videoUrl;
+    
+    // Handle old format (filePath) vs new format (s3Key)
+    if (videoData.s3Key) {
+      // New format - generate S3 signed URL
+      console.log(`Using S3 storage for processed video:`, videoData.s3Key);
+      videoUrl = await getSignedUrl(videoData.s3Key, 3600); // 1 hour expiry
+    } else if (videoData.filePath) {
+      // Legacy format - return a local URL
+      console.log(`Using local storage for processed video:`, videoData.filePath);
+      videoUrl = `${process.env.SERVER_URL || 'http://localhost:4000'}/static/${videoData.filePath.replace(/\\/g, '/')}`;
+    } else {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No valid video storage location found' 
+      });
+    }
+
+    res.json({ url: videoUrl });
+  } catch (error) {
+    console.error('Error getting processed video:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get processed video',
+      error: error.message 
+    });
+  }
+};
+
+// Get Original Video (Admin)
+exports.getOriginalVideo = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    
+    const analysis = await Analysis.findById(analysisId);
+    if (!analysis) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Analysis not found' 
+      });
+    }
+
+    const videoData = analysis.originalVideo;
+    if (!videoData) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Original video not found' 
+      });
+    }
+
+    let videoUrl;
+    
+    // Handle old format (filePath) vs new format (s3Key)
+    if (videoData.s3Key) {
+      // New format - generate S3 signed URL
+      console.log(`Using S3 storage for original video:`, videoData.s3Key);
+      videoUrl = await getSignedUrl(videoData.s3Key, 3600); // 1 hour expiry
+    } else if (videoData.filePath) {
+      // Legacy format - return a local URL
+      console.log(`Using local storage for original video:`, videoData.filePath);
+      videoUrl = `${process.env.SERVER_URL || 'http://localhost:4000'}/static/${videoData.filePath.replace(/\\/g, '/')}`;
+    } else {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No valid video storage location found' 
+      });
+    }
+
+    res.json({ url: videoUrl });
+  } catch (error) {
+    console.error('Error getting original video:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get original video',
+      error: error.message 
+    });
+  }
+};
+
+// Get Keyframes (Admin)
+exports.getKeyframes = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    
+    const analysis = await Analysis.findById(analysisId);
+    if (!analysis) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Analysis not found' 
+      });
+    }
+
+    if (!analysis.keyframes || analysis.keyframes.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No keyframes available' 
+      });
+    }
+
+    // Generate signed URLs for all keyframes
+    const keyframeUrls = await Promise.all(
+      analysis.keyframes.map(async (keyframe, index) => {
+        let url;
+        
+        // Handle old format (filePath) vs new format (s3Key)
+        if (keyframe.s3Key) {
+          // New format - generate S3 signed URL
+          console.log(`Using S3 storage for keyframe ${index}:`, keyframe.s3Key);
+          url = await getSignedUrl(keyframe.s3Key, 3600); // 1 hour expiry
+        } else if (keyframe.filePath) {
+          // Legacy format - return a local URL
+          console.log(`Using local storage for keyframe ${index}:`, keyframe.filePath);
+          url = `${process.env.SERVER_URL || 'http://localhost:4000'}/static/${keyframe.filePath.replace(/\\/g, '/')}`;
+        } else {
+          return null; // Skip invalid keyframes
+        }
+        
+        return {
+          url,
+          timestamp: keyframe.timestamp || 0
+        };
+      })
+    );
+
+    // Filter out null keyframes
+    const validKeyframes = keyframeUrls.filter(kf => kf !== null);
+
+    res.json({ keyframes: validKeyframes });
+  } catch (error) {
+    console.error('Error getting keyframes:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get keyframes',
       error: error.message 
     });
   }
