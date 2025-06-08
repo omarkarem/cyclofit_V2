@@ -12,6 +12,7 @@ const AdminUsers = () => {
     search: '',
     role: '',
     status: '',
+    emailVerified: '',
     page: 1,
     limit: 20
   });
@@ -94,6 +95,61 @@ const AdminUsers = () => {
       ...prev,
       page: newPage
     }));
+  };
+
+  const toggleEmailVerification = async (userId, currentStatus) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setErrorMessage('Authentication required. Please log in again.');
+      return;
+    }
+
+    try {
+      setActionLoading(prev => ({ ...prev, [userId]: true }));
+      setErrorMessage('');
+      setSuccessMessage('');
+      
+      const response = await axios.patch(
+        `${process.env.REACT_APP_API_URL}/api/admin/users/${userId}/email-verification`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Update user in local state
+        setUsers(prev => prev.map(user => 
+          user._id === userId 
+            ? { ...user, isEmailVerified: !currentStatus }
+            : user
+        ));
+
+        const action = currentStatus ? 'unverified' : 'verified';
+        setSuccessMessage(`User email successfully ${action}.`);
+      }
+
+      setActionLoading(prev => ({ ...prev, [userId]: false }));
+    } catch (err) {
+      console.error('Error toggling email verification:', err);
+      setActionLoading(prev => ({ ...prev, [userId]: false }));
+      
+      let errorMsg = 'Failed to update email verification status';
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.status === 403) {
+        errorMsg = 'Access denied. You do not have permission to perform this action.';
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Authentication failed. Please log in again.';
+        navigate('/login');
+        return;
+      }
+      
+      setErrorMessage(errorMsg);
+    }
   };
 
   const toggleUserStatus = async (userId, currentStatus) => {
@@ -346,7 +402,7 @@ const AdminUsers = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Search Users</label>
               <input
@@ -382,6 +438,19 @@ const AdminUsers = () => {
                 <option value="">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email Verified</label>
+              <select
+                value={filters.emailVerified || ''}
+                onChange={(e) => handleFilterChange('emailVerified', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="">All Users</option>
+                <option value="verified">Verified</option>
+                <option value="unverified">Unverified</option>
               </select>
             </div>
             
@@ -422,6 +491,9 @@ const AdminUsers = () => {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email Verified
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Analyses
@@ -484,6 +556,11 @@ const AdminUsers = () => {
                         {user.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${user.isEmailVerified ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+                        {user.isEmailVerified ? 'Verified' : 'Unverified'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.analysisCount || 0}
                     </td>
@@ -494,14 +571,35 @@ const AdminUsers = () => {
                       {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {canToggleStatus(user) ? (
+                      <div className="flex justify-end space-x-2">
+                        {canToggleStatus(user) && (
+                          <button
+                            onClick={() => toggleUserStatus(user._id, user.isActive)}
+                            disabled={actionLoading[user._id]}
+                            className={`inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md transition-colors ${
+                              user.isActive
+                                ? 'text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500'
+                                : 'text-green-700 bg-green-100 hover:bg-green-200 focus:ring-green-500'
+                            } focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                              actionLoading[user._id] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                            }`}
+                          >
+                            {actionLoading[user._id] ? (
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              user.isActive ? 'Deactivate' : 'Activate'
+                            )}
+                          </button>
+                        )}
+                        
+                        {/* Email Verification Toggle */}
                         <button
-                          onClick={() => toggleUserStatus(user._id, user.isActive)}
+                          onClick={() => toggleEmailVerification(user._id, user.isEmailVerified)}
                           disabled={actionLoading[user._id]}
                           className={`inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md transition-colors ${
-                            user.isActive
-                              ? 'text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500'
-                              : 'text-green-700 bg-green-100 hover:bg-green-200 focus:ring-green-500'
+                            user.isEmailVerified
+                              ? 'text-orange-700 bg-orange-100 hover:bg-orange-200 focus:ring-orange-500'
+                              : 'text-blue-700 bg-blue-100 hover:bg-blue-200 focus:ring-blue-500'
                           } focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                             actionLoading[user._id] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                           }`}
@@ -509,12 +607,14 @@ const AdminUsers = () => {
                           {actionLoading[user._id] ? (
                             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                           ) : (
-                            user.isActive ? 'Deactivate' : 'Activate'
+                            user.isEmailVerified ? 'Unverify Email' : 'Verify Email'
                           )}
                         </button>
-                      ) : (
-                        <span className="text-gray-400 text-sm">No action</span>
-                      )}
+                        
+                        {!canToggleStatus(user) && (
+                          <span className="text-gray-400 text-sm">No action</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -161,6 +161,7 @@ exports.getAllUsers = async (req, res) => {
     const search = req.query.search || '';
     const role = req.query.role || '';
     const status = req.query.status || '';
+    const emailVerified = req.query.emailVerified || '';
 
     // Build filter object
     const filter = {};
@@ -179,6 +180,10 @@ exports.getAllUsers = async (req, res) => {
     
     if (status) {
       filter.isActive = status === 'active';
+    }
+
+    if (emailVerified) {
+      filter.isEmailVerified = emailVerified === 'verified';
     }
 
     const skip = (page - 1) * limit;
@@ -602,6 +607,48 @@ exports.getSystemHealth = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'System health check failed',
+      error: error.message 
+    });
+  }
+};
+
+// Toggle Email Verification Status
+exports.toggleEmailVerification = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Toggle email verification status
+    user.isEmailVerified = !user.isEmailVerified;
+    
+    // Clear verification token if setting to verified
+    if (user.isEmailVerified) {
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+    }
+    
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `User email ${user.isEmailVerified ? 'verified' : 'unverified'} successfully`,
+      data: {
+        userId: user._id,
+        isEmailVerified: user.isEmailVerified
+      }
+    });
+  } catch (error) {
+    console.error('Error toggling email verification:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to toggle email verification status',
       error: error.message 
     });
   }
