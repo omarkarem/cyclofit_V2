@@ -716,11 +716,33 @@ exports.getAllContacts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || '';
     const status = req.query.status || '';
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
+    // Build filter object
     const filter = {};
+    
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { subject: { $regex: search, $options: 'i' } },
+        { message: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
     if (status) {
       filter.status = status;
+    }
+    
+    if (startDate && endDate) {
+      filter.createdAt = { $gte: startDate, $lte: endDate };
+    } else if (startDate) {
+      filter.createdAt = { $gte: startDate };
+    } else if (endDate) {
+      filter.createdAt = { $lte: endDate };
     }
 
     const skip = (page - 1) * limit;
@@ -761,7 +783,7 @@ exports.updateContactStatus = async (req, res) => {
     const { contactId } = req.params;
     const { status } = req.body;
 
-    if (!['pending', 'in_progress', 'resolved'].includes(status)) {
+    if (!['new', 'read', 'replied', 'closed'].includes(status)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid status specified' 
