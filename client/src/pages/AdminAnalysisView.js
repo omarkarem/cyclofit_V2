@@ -4,6 +4,7 @@ import axios from 'axios';
 import AdminNavbar from '../components/layout/AdminNavbar';
 import LoadingIndicator from '../components/LoadingIndicator';
 import KeyFrameGallery from '../components/KeyFrameGallery';
+import BikeRecommendations from '../components/BikeRecommendations';
 
 const AdminAnalysisView = () => {
   const { analysisId } = useParams();
@@ -12,6 +13,7 @@ const AdminAnalysisView = () => {
   const [error, setError] = useState('');
   const [processedVideoUrl, setProcessedVideoUrl] = useState(null);
   const [keyframesUrl, setKeyframesUrl] = useState(null);
+  const [bikeType, setBikeType] = useState('road');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +38,7 @@ const AdminAnalysisView = () => {
       const analysisData = response.data.data.analysis;
       console.log('Admin Analysis Data:', analysisData); // Debug log
       setAnalysis(analysisData);
+      setBikeType(analysisData.bikeType || 'road');
       
       // Fetch processed video if available
       if (analysisData.processed_video_available) {
@@ -220,7 +223,10 @@ const AdminAnalysisView = () => {
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Duration:</span>
                   <span className="text-sm font-medium">
-                    {analysis.duration ? `${Math.floor(analysis.duration / 60)}:${(analysis.duration % 60).toString().padStart(2, '0')}` : 'Unknown'}
+                    {(() => {
+                      console.log('Frontend duration value:', analysis.duration, typeof analysis.duration);
+                      return analysis.duration ? `${Math.floor(analysis.duration / 60)}:${(analysis.duration % 60).toString().padStart(2, '0')}` : 'Unknown';
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -309,24 +315,11 @@ const AdminAnalysisView = () => {
         {/* Recommendations */}
         {analysis.recommendations && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Recommendations</h3>
-            
-            {analysis.recommendations.general && analysis.recommendations.general.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">General Recommendations</h4>
-                <div className="space-y-3">
-                  {analysis.recommendations.general.map((rec, index) => (
-                    <div key={index} className="border-l-4 border-blue-400 bg-blue-50 p-4">
-                      <h5 className="font-medium text-blue-900">{rec.component}</h5>
-                      <p className="text-sm text-blue-800 mt-1">{rec.issue}</p>
-                      <p className="text-sm text-blue-700 mt-2"><strong>Action:</strong> {rec.action}</p>
-                      {rec.current && <p className="text-xs text-blue-600 mt-1">Current: {rec.current}</p>}
-                      {rec.target && <p className="text-xs text-blue-600">Target: {rec.target}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <BikeRecommendations 
+              recommendations={analysis.recommendations} 
+              bikeType={bikeType} 
+              setBikeType={setBikeType} 
+            />
           </div>
         )}
       </main>

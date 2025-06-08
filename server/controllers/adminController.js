@@ -516,12 +516,18 @@ exports.getAnalysisById = async (req, res) => {
         analysisData.storageType || 'unknown';
     }
     
-    // Ensure duration is properly set - use originalVideo duration if analysis duration not available
-    if (!analysisData.duration && analysis.originalVideo && analysis.originalVideo.duration) {
-      analysisData.duration = analysis.originalVideo.duration;
+    // Ensure duration is properly set - try multiple sources
+    if (!analysisData.duration || analysisData.duration === null) {
+      if (analysis.originalVideo && analysis.originalVideo.duration) {
+        analysisData.duration = analysis.originalVideo.duration;
+      } else if (analysis.processedVideo && analysis.processedVideo.duration) {
+        analysisData.duration = analysis.processedVideo.duration;
+      }
     }
     
     console.log('Analysis duration:', analysisData.duration, 'Storage type:', analysisData.storageType);
+    console.log('Original video duration:', analysis.originalVideo?.duration);
+    console.log('Processed video duration:', analysis.processedVideo?.duration);
     
     // Check for video availability using both fields
     analysisData.processed_video_available = !!analysis.processedVideo?.s3Key || !!analysis.processedVideo?.filePath;
