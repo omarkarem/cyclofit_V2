@@ -487,6 +487,52 @@ exports.deleteAnalysis = async (req, res) => {
   }
 };
 
+// Get Analysis by ID (Admin)
+exports.getAnalysisById = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    
+    const analysis = await Analysis.findById(analysisId).populate('user', 'name email');
+    if (!analysis) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Analysis not found' 
+      });
+    }
+
+    // Add a field to indicate which storage type is being used
+    const storageType = 
+      (analysis.originalVideo && analysis.originalVideo.s3Key) ? 's3' : 
+      (analysis.originalVideo && analysis.originalVideo.filePath) ? 'local' : 
+      'unknown';
+    
+    // Transform for client (add some helpful flags)
+    const analysisData = analysis.toObject();
+    analysisData.storageType = storageType;
+    
+    // Check for video availability using both fields
+    analysisData.processed_video_available = !!analysis.processedVideo?.s3Key || !!analysis.processedVideo?.filePath;
+    
+    // Always include keyframe information
+    analysisData.keyframes_available = Array.isArray(analysis.keyframes) && analysis.keyframes.length > 0;
+    analysisData.keyframe_count = Array.isArray(analysis.keyframes) ? analysis.keyframes.length : 0;
+
+    res.json({
+      success: true,
+      data: {
+        analysis: analysisData
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching analysis:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch analysis',
+      error: error.message 
+    });
+  }
+};
+
 // Contact Form Management
 exports.getAllContacts = async (req, res) => {
   try {

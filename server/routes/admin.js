@@ -13,6 +13,7 @@ router.patch('/users/:userId/role', adminAuth, adminController.updateUserRole);
 
 // Analysis Management
 router.get('/analyses', adminAuth, adminController.getAllAnalyses);
+router.get('/analyses/:analysisId', adminAuth, adminController.getAnalysisById);
 router.delete('/analyses/:analysisId', adminAuth, adminController.deleteAnalysis);
 
 // Contact Form Management

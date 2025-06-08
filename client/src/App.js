@@ -23,6 +23,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminSystem from './pages/AdminSystem';
 import AdminAnalyses from './pages/AdminAnalyses';
+import AdminAnalysisView from './pages/AdminAnalysisView';
 import AdminContacts from './pages/AdminContacts';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -206,6 +207,11 @@ function App() {
         <Route path="/admin/analyses" element={
           <ProtectedRoute>
             <AdminAnalyses />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/analysis/:analysisId" element={
+          <ProtectedRoute>
+            <AdminAnalysisView />
           </ProtectedRoute>
         } />
         <Route path="/admin/contacts" element={

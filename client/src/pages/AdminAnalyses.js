@@ -311,7 +311,7 @@ const AdminAnalyses = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => navigate(`/analysis/${analysis._id}`)}
+                          onClick={() => navigate(`/admin/analysis/${analysis._id}`)}
                           className="text-blue-600 hover:text-blue-900 text-sm font-medium"
                         >
                           View
