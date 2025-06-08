@@ -37,7 +37,7 @@ const sendEmail = async (to, subject, html) => {
     }
     
     const info = await transporter.sendMail({
-      from: process.env.SMTP_USER || 'noreply@cyclofit.com',
+      from: `"CycloFit" <${process.env.SMTP_USER || 'noreply@cyclofit.com'}>`,
       to,
       subject,
       html
@@ -129,6 +129,8 @@ exports.register = async (req, res) => {
     // Send verification email
     const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
     console.log('Verification URL:', verificationUrl);
+    console.log('CLIENT_URL env var:', process.env.CLIENT_URL);
+    console.log('SMTP_USER env var:', process.env.SMTP_USER);
     
     const emailTemplate = `
       <h1>Welcome to CycloFit!</h1>
