@@ -129,6 +129,9 @@ function Register() {
                     <p className="text-sm text-green-700">
                       Registration successful! Please check your email to verify your account.
                     </p>
+                    <p className="text-sm text-green-600 mt-2">
+                      <strong>📧 Note:</strong> If you don't see the email in your inbox, please check your spam/junk folder.
+                    </p>
                   </div>
                 </div>
               </div>

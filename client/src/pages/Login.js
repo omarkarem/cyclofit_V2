@@ -94,7 +94,7 @@ function Login() {
       setLoading(false);
       setError('');
       setNeedsVerification(false);
-      alert('Verification email has been sent! Please check your inbox and spam folder.');
+      alert('Verification email has been sent! Please check your inbox and spam folder. Sometimes verification emails end up in the spam/junk folder.');
     } catch (err) {
       setLoading(false);
       setError(err.response?.data?.msg || 'Failed to resend verification email.');

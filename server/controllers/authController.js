@@ -135,6 +135,7 @@ exports.register = async (req, res) => {
       <p>Please verify your email by clicking the link below:</p>
       <a href="${verificationUrl}" style="display: inline-block; background-color: #4a90e2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a>
       <p>This link will expire in 24 hours.</p>
+      <p><strong>📧 Important:</strong> If you don't see this email in your inbox, please check your spam/junk folder. Sometimes verification emails end up there!</p>
       <p>If the button doesn't work, copy and paste this URL into your browser:</p>
       <p>${verificationUrl}</p>
     `;
@@ -423,6 +424,7 @@ exports.resendVerification = async (req, res) => {
       <p>Please verify your email by clicking the link below:</p>
       <a href="${verificationUrl}" style="display: inline-block; background-color: #4a90e2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a>
       <p>This link will expire in 24 hours.</p>
+      <p><strong>📧 Important:</strong> If you don't see this email in your inbox, please check your spam/junk folder. Sometimes verification emails end up there!</p>
       <p>If the button doesn't work, copy and paste this URL into your browser:</p>
       <p>${verificationUrl}</p>
     `;

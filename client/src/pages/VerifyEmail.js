@@ -162,7 +162,7 @@ function VerifyEmail() {
                 </svg>
                 <h2 className="mt-6 text-center text-xl font-extrabold text-gray-900">Verification Email Sent</h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                  We've sent a new verification email to your inbox. Please check your email.
+                  We've sent a new verification email to your inbox. Please check your email and spam/junk folder.
                 </p>
                 <button
                   onClick={goToLogin}
